@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapFix - Create Account</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Using Google Fonts for a clean, modern sans-serif look -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="split-layout">
+        <!-- Left Dark Panel -->
+        <div class="left-panel">
+            <div class="brand-section">
+                <h1 class="logo">SnapFix</h1>
+                <p class="brand-subtitle">ADMIN & DISPATCHER PORTAL</p>
+            </div>
+            
+            <div class="hero-section">
+                <h2>Manage your team.<br>Resolve issues faster.</h2>
+                <p>Create an authorized staff account to review, update, and assign incoming tickets.</p>
+            </div>
+
+            <div class="footer-section">
+                <p>SECURE STAFF ACCESS</p>
+            </div>
+        </div>
+
+        <!-- Right Light Panel -->
+        <div class="right-panel">
+            <div class="form-container">
+                <h2>Create your account</h2>
+                <p class="form-subtitle">For authorized admins and dispatchers only.</p>
+
+                <form id="signupForm">
+                    <div class="input-group">
+                        <label for="fullName">Full name</label>
+                        <input type="text" id="fullName" placeholder="Enter your full name" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="email">Work email</label>
+                        <input type="email" id="email" placeholder="name@company.com" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" placeholder="Enter your password" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="confirmPassword">Confirm password</label>
+                        <input type="password" id="confirmPassword" placeholder="Re-enter your password" required>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Create account</button>
+                </form>
+
+                <div class="login-prompt">
+                    <p>Already have an account? <a href="#">Log in</a></p>
+                </div>
+
+                <div class="disclaimer">
+                    <p>Account access may require administrator approval.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

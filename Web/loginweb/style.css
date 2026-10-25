@@ -1,0 +1,195 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    font-family: 'Inter', sans-serif;
+    height: 100%;
+    width: 100%;
+}
+
+/* Layout */
+.split-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- Left Panel Styles --- */
+.left-panel {
+    width: 35%;
+    background-color: #1e1f26; /* Dark background */
+    color: white;
+    padding: 40px 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-left: 8px solid #da4771; /* Pink accent bar */
+}
+
+.brand-section .logo {
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+.brand-section .brand-subtitle {
+    color: #da4771;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.hero-section {
+    margin-top: -100px; /* Adjusting vertical alignment to match image */
+}
+
+.hero-section h2 {
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 25px;
+}
+
+.hero-section p {
+    font-size: 16px;
+    color: #a0a0a5;
+    line-height: 1.5;
+    max-width: 90%;
+}
+
+.footer-section p {
+    font-size: 11px;
+    color: #8b8b93;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+}
+
+/* --- Right Panel Styles --- */
+.right-panel {
+    width: 65%;
+    background-color: #f7f7f9; /* Light gray background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 480px;
+}
+
+.form-container h2 {
+    color: #1e1f26;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.form-subtitle {
+    color: #7b7b83;
+    font-size: 14px;
+    margin-bottom: 40px;
+}
+
+/* Form Inputs */
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e1f26;
+    margin-bottom: 8px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #e0e0e5;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+
+.input-group input::placeholder {
+    color: #a0a0a5;
+}
+
+.input-group input:focus {
+    border-color: #da4771;
+}
+
+/* Button */
+.submit-btn {
+    width: 100%;
+    padding: 16px;
+    background-color: #da4771;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.2s;
+    font-family: inherit;
+}
+
+.submit-btn:hover {
+    background-color: #c43c62;
+}
+
+/* Login Prompt & Disclaimer */
+.login-prompt {
+    margin-top: 24px;
+    font-size: 14px;
+    color: #7b7b83;
+    display: flex;
+    gap: 30px;
+}
+
+.login-prompt a {
+    color: #da4771;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-prompt a:hover {
+    text-decoration: underline;
+}
+
+.disclaimer {
+    margin-top: 30px;
+    font-size: 12px;
+    color: #9e9ea6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .split-layout {
+        flex-direction: column;
+    }
+    .left-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 8px solid #da4771;
+        padding: 40px 30px;
+        min-height: 40vh;
+    }
+    .hero-section {
+        margin-top: 40px;
+        margin-bottom: 40px;
+    }
+    .right-panel {
+        width: 100%;
+        padding: 50px 30px;
+    }
+}
