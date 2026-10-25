@@ -1,122 +1,274 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'data/local_account_store.dart';
+import 'data/sample_reports.dart';
+import 'models/report.dart';
+import 'screen/auth_screen.dart';
+import 'screen/edit_profile.dart';
+import 'screen/home.dart';
+import 'screen/onboarding_screen.dart';
+import 'screen/profile.dart';
+import 'screen/report.dart';
+import 'screen/report_details.dart';
+import 'screen/submit_report.dart';
+import 'screen/submitted_report.dart';
+import 'screen/update.dart';
+import 'screen/welcome_screen.dart';
+import 'theme/app_theme.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  LocalAccountStore.defaultPrefs = await SharedPreferences.getInstance();
+  runApp(
+    SnapFixApp(initialAccount: await LocalAccountStore().signedInAccount()),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SnapFixApp extends StatelessWidget {
+  const SnapFixApp({super.key, this.initialAccount});
 
-  // This widget is the root of your application.
+  /// The account still signed in from an earlier launch, if any.
+  final LocalAccount? initialAccount;
+
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  Widget build(BuildContext context) => MaterialApp(
+    title: 'SnapFix',
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    home: AppEntry(initialAccount: initialAccount),
+  );
+}
+
+/// Chooses between the first-run tour and the main app.
+class AppEntry extends StatefulWidget {
+  const AppEntry({super.key, this.initialAccount});
+
+  final LocalAccount? initialAccount;
+
+  @override
+  State<AppEntry> createState() => _AppEntryState();
+}
+
+enum _Stage { welcome, onboarding, app, auth }
+
+class _AppEntryState extends State<AppEntry> {
+  late _Stage _stage = widget.initialAccount == null
+      ? _Stage.welcome
+      : _Stage.app;
+
+  /// `initialAccount` is only what an earlier launch left behind, so the
+  /// resident registered in this session has to be carried to the shell here.
+  late LocalAccount? _account = widget.initialAccount;
+
+  void _advance(_Stage stage) {
+    setState(() => _stage = stage);
   }
-}
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
+  Future<void> _finishAuth(String email, String? name) async {
+    final account = await LocalAccountStore().signedInAccount();
+    if (!mounted) return;
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _account = account;
+      _stage = _Stage.app;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+    switch (_stage) {
+      case _Stage.welcome:
+        return WelcomeScreen(
+          onGetStarted: () => _advance(_Stage.onboarding),
+          onSkip: () => _advance(_Stage.app),
+        );
+
+      case _Stage.onboarding:
+        return OnboardingScreen(
+          onFinished: () => _advance(_Stage.auth),
+          onSkip: () => _advance(_Stage.app),
+        );
+
+      case _Stage.auth:
+        return AuthScreen(onSignedIn: _finishAuth);
+
+      case _Stage.app:
+        return SnapFixShell(initialAccount: _account);
+    }
+  }
+}
+
+/// Bottom-navigation shell that owns the in-memory report list and the
+/// signed-in account.
+class SnapFixShell extends StatefulWidget {
+  const SnapFixShell({super.key, this.initialAccount});
+
+  final LocalAccount? initialAccount;
+
+  @override
+  State<SnapFixShell> createState() => _SnapFixShellState();
+}
+
+class _SnapFixShellState extends State<SnapFixShell> {
+  final List<IssueReport> _reports = createSampleReports();
+  final LocalAccountStore _store = LocalAccountStore();
+  int _tab = 0;
+  int _serial = 14;
+  late LocalAccount? _account = widget.initialAccount;
+
+  void _open(Widget page) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = [
+      HomePage(
+        reports: _reports,
+        onReport: _showDetails,
+        onCreate: () => _open(SubmitReportPage(onSubmitted: _addReport)),
+      ),
+      ReportsPage(reports: _reports, onReport: _showDetails),
+      const SizedBox.shrink(),
+      UpdatesPage(reports: _reports, onReport: _showDetails),
+      ProfilePage(
+        account: _account,
+        onAuth: _openAuth,
+        onEdit: _editProfile,
+        onLogout: _signOut,
+      ),
+    ];
+
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+      body: SafeArea(child: pages[_tab]),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) {
+          if (i == 2) {
+            _open(SubmitReportPage(onSubmitted: _addReport));
+          } else {
+            setState(() => _tab = i);
+          }
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.description_outlined),
+            selectedIcon: Icon(Icons.description),
+            label: 'Reports',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_circle, size: 38, color: AppTheme.pink),
+            label: 'Report',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.notifications_none),
+            selectedIcon: Icon(Icons.notifications),
+            label: 'Updates',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
+  }
+
+  void _addReport(IssueReport draft) {
+    final saved = draft.copyWith(id: 'SF-LOCAL-${_serial++}');
+    setState(() {
+      _reports.insert(0, saved);
+      _tab = 1;
+    });
+    _open(
+      SubmittedReportPage(
+        reportId: saved.id,
+        onViewReports: () => Navigator.pop(context),
+        onBackToHome: () {
+          setState(() => _tab = 0);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _openAuth() =>
+      _open(AuthScreen(onSignedIn: (email, name) => _onSignedIn(email, name)));
+
+  /// The auth pages pop themselves and persist the session, so the shell only
+  /// has to re-read what storage holds.
+  void _onSignedIn(String email, String? name) {
+    _refreshAccount();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          name == null || name.trim().isEmpty
+              ? 'Signed in as $email.'
+              : 'Welcome back, ${name.trim()}!',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshAccount() async {
+    final account = await _store.signedInAccount();
+    if (mounted) setState(() => _account = account);
+  }
+
+  void _editProfile() {
+    final account = _account;
+    if (account == null) {
+      _openAuth();
+      return;
+    }
+    _open(
+      ProfileEditPage(
+        account: account,
+        onSaved: (updated) => setState(() => _account = updated),
+      ),
+    );
+  }
+
+  Future<void> _signOut() async {
+    // Ends the session but keeps the account registered on this device.
+    await _store.signOut();
+    if (mounted) setState(() => _account = null);
+  }
+
+  void _showDetails(IssueReport report) => _open(
+    ReportDetailsPage(report: report, onDelete: () => _confirmDelete(report)),
+  );
+
+  Future<void> _confirmDelete(IssueReport report) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_outline, color: AppTheme.pink, size: 35),
+        title: const Text('Delete report?'),
+        content: const Text(
+          'Are you sure you want to delete this report? '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep report'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete report'),
+          ),
+        ],
+      ),
+    );
+
+    if (yes != true) return;
+    setState(() => _reports.removeWhere((r) => r.id == report.id));
+    if (mounted) Navigator.pop(context);
   }
 }
