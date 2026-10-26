@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Ticket | SnapFix Admin</title>
+    <link rel="stylesheet" href="rev.css">
+</head>
+<body>
+    <div class="admin-layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">S</div>
+                <div class="brand-info">
+                    <h2>SnapFix Admin</h2>
+                    <p>ADMIN &amp; DISPATCH</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-navigation">
+                <p class="navigation-label">WORKSPACE</p>
+                <a href="#" class="nav-link">Dashboard</a>
+                <a href="tckts.html" class="nav-link active">
+                    Incoming Tickets
+                    <span class="ticket-count">12</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-profile">
+                <div class="profile-avatar">AD</div>
+                <div class="profile-info">
+                    <h3>Alex Dispatcher</h3>
+                    <p>Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-breadcrumb">
+                   <a href="../incnmg/tckts.html">Incoming Tickets</a>
+                    <span>/</span>
+                    <span class="current-page">Review Ticket</span>
+                </div>
+                <div class="header-actions">
+                    <span class="admin-role">Administrator</span>
+                    <div class="header-avatar">AD</div>
+                </div>
+            </header>
+
+            <section class="page-heading">
+                <div>
+                    <a class="back-link" href="../incnmg/tckts.html">
+                        &larr; Back to Incoming Tickets
+                    </a>
+                    <h1>Review Ticket</h1>
+                    <p>Review the submitted report and assign it to the appropriate department.</p>
+                </div>
+                <span class="ticket-id" id="ticket-id">#SF-1024</span>
+            </section>
+
+            <div class="review-grid">
+
+                <section class="panel ticket-details">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Ticket Details</h2>
+                            <p>Information submitted by the citizen</p>
+                        </div>
+                        <span class="status-badge pending" id="display-status">
+                            Pending
+                        </span>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Issue Title</span>
+                        <h3 id="issue-title">Road Damage</h3>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-item">
+                            <span class="detail-label">Location</span>
+                            <p id="issue-location">BGC, Taguig</p>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Priority</span>
+                            <span class="priority-badge high" id="display-priority">
+                                High
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Date Submitted</span>
+                        <p id="date-submitted">October 24, 2026</p>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Description</span>
+                        <p id="issue-description">
+                            A damaged road surface has been reported. Please inspect
+                            the location and arrange the necessary repairs.
+                        </p>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Attached Photo</span>
+                        <div class="photo-placeholder">
+                            <span class="photo-icon">▧</span>
+                            <p>No photo attached</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel update-panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Update &amp; Assign</h2>
+                            <p>Manage the ticket's status and assignment</p>
+                        </div>
+                    </div>
+
+                    <form id="review-form">
+                        <div class="form-group">
+                            <label for="ticket-status">Ticket Status</label>
+                            <select id="ticket-status" required>
+                                <option value="pending">Pending</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ticket-priority">Urgency / Priority</label>
+                            <select id="ticket-priority" required>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ticket-department">Assign Department</label>
+                            <select id="ticket-department" required>
+                                <option value="">Select a department</option>
+                                <option value="Public Works">Public Works</option>
+                                <option value="Traffic Management">Traffic Management</option>
+                                <option value="Waste Management">Waste Management</option>
+                                <option value="Street Lighting">Street Lighting</option>
+                                <option value="General Services">General Services</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="admin-notes">Admin Notes</label>
+                            <textarea
+                                id="admin-notes"
+                                rows="4"
+                                placeholder="Add internal notes or instructions..."></textarea>
+                        </div>
+
+                        <div class="assigned-info">
+                            <span class="detail-label">Currently Assigned To</span>
+                            <p id="current-assignment">Not assigned</p>
+                        </div>
+
+                        <p class="form-message" id="form-message" role="status"></p>
+
+                        <button type="submit" class="primary-button">
+                            Save Changes
+                        </button>
+
+                        <button type="button" class="secondary-button" id="assign-button">
+                            Assign Ticket
+                        </button>
+                    </form>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="rev.js"></script>
+</body>
+</html>

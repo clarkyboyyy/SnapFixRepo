@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incoming Tickets | SnapFix Admin</title>
+    <link rel="stylesheet" href="tckts.css">
+</head>
+<body>
+
+    <div class="admin-layout">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="brand-logo">S</div>
+                <div class="brand-info">
+                    <h2>SnapFix Admin</h2>
+                    <p>ADMIN &amp; DISPATCH</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-navigation">
+                <p class="navigation-label">WORKSPACE</p>
+
+           
+
+             <a href="../incnmg/tckts.html"
+                class="nav-link active">
+                    Incoming Tickets
+                <span class="ticket-count">12</span>
+            </a>
+            </nav>
+
+            <div class="sidebar-profile">
+                <div class="profile-avatar">AD</div>
+                <div class="profile-info">
+                    <h3>Alex Dispatcher</h3>
+                    <p>Administrator</p>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-breadcrum    uit">
+                    <span>Workspace</span>
+                    <span class="breadcrumb-divider">/</span>
+                    <span class="current-page">Incoming Tickets</span>
+                </div>
+
+                <div class="header-actions">
+                    <span class="admin-role">Administrator</span>
+                    <div class="header-avatar">AD</div>
+                </div>
+            </header>
+
+            <!-- Page Heading -->
+            <section class="page-heading">
+                <div class="heading-text">
+                    <h1>Incoming Tickets</h1>
+                    <p>Review, manage, and assign submitted service requests.</p>
+                </div>
+            </section>
+
+            <!-- Ticket Management -->
+            <section class="ticket-management">
+
+                <div class="ticket-toolbar">
+                    <div class="search-box">
+                        <label for="ticket-search">Search tickets</label>
+                        <input
+                            type="search"
+                            id="ticket-search"
+                            name="ticket-search"
+                            placeholder="Search by ticket ID or issue">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="status-filter">Status</label>
+                        <select id="status-filter" name="status">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="priority-filter">Priority</label>
+                        <select id="priority-filter" name="priority">
+                            <option value="">All Priorities</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tickets Table -->
+                <div class="ticket-table-container">
+                    <table class="ticket-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Issue / Location</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Date Submitted</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <tr>
+                                <td>#SF-1024</td>
+                                <td>
+                                    <strong>Road Damage</strong>
+                                    <span class="table-subtext">BGC, Taguig</span>
+                                </td>
+                                <td>
+                                    <span class="priority-badge high">High</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge pending">Pending</span>
+                                </td>
+                                <td>Oct 24, 2026</td>
+                                <td>
+                                    <a href="../review/rev.html?id=SF-1024" class="review-button">
+                                        Review
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>#SF-1025</td>
+                                <td>
+                                    <strong>Broken Streetlight</strong>
+                                    <span class="table-subtext">Makati City</span>
+                                </td>
+                                <td>
+                                    <span class="priority-badge medium">Medium</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge in-progress">In Progress</span>
+                                </td>
+                                <td>Oct 24, 2026</td>
+                                <td>
+                                    <a href="../review/rev.html?id=SF-1025" class="review-button">
+                                        Review
+                                    </a>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>#SF-1026</td>
+                                <td>
+                                    <strong>Garbage Collection</strong>
+                                    <span class="table-subtext">Pasig City</span>
+                                </td>
+                                <td>
+                                    <span class="priority-badge low">Low</span>
+                                </td>
+                                <td>
+                                    <span class="status-badge pending">Pending</span>
+                                </td>
+                                <td>Oct 25, 2026</td>
+                                <td>
+                                    <a href="../review/rev.html?id=SF-1026" class="review-button">
+                                        Review
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <p>Showing 3 sample tickets</p>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+<script src="tckts.js"></script>
+</body>
+</html>
