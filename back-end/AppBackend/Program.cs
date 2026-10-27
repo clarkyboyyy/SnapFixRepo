@@ -1,4 +1,11 @@
+using AppBackend.Data; // Make sure you have this to find AppDbContext
+using Microsoft.EntityFrameworkCore; // Make sure you have this to use SQL Server
+
 var builder = WebApplication.CreateBuilder(args);
+
+// 1. ADDED THIS BLOCK: Connects C# to your SQL Server database
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddCors(options =>
 {
