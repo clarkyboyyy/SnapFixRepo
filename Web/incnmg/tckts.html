@@ -24,14 +24,19 @@
 
             <nav class="sidebar-navigation">
                 <p class="navigation-label">WORKSPACE</p>
-
-           
-
+            
              <a href="../incnmg/tckts.html"
                 class="nav-link active">
                     Incoming Tickets
-                <span class="ticket-count">12</span>
+                <span class="ticket-count">3</span>
+
+             <a href="assgnd.html" class="nav-link">
+                Assigned Tickets
             </a>
+
+            </a>
+
+         
             </nav>
 
             <div class="sidebar-profile">
@@ -89,6 +94,7 @@
                             <option value="pending">Pending</option>
                             <option value="in-progress">In Progress</option>
                             <option value="resolved">Resolved</option>
+                            <option value="assigned">Assigned</option>
                         </select>
                     </div>
 
@@ -112,72 +118,78 @@
                                 <th>Issue / Location</th>
                                 <th>Priority</th>
                                 <th>Status</th>
+                                <th>Assigned To</th>
                                 <th>Date Submitted</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
 
-                        <tbody>
-                            <tr>
-                                <td>#SF-1024</td>
-                                <td>
-                                    <strong>Road Damage</strong>
-                                    <span class="table-subtext">BGC, Taguig</span>
-                                </td>
-                                <td>
-                                    <span class="priority-badge high">High</span>
-                                </td>
-                                <td>
-                                    <span class="status-badge pending">Pending</span>
-                                </td>
-                                <td>Oct 24, 2026</td>
-                                <td>
-                                    <a href="../review/rev.html?id=SF-1024" class="review-button">
-                                        Review
-                                    </a>
-                                </td>
-                            </tr>
+                        
+<tbody>
+    <tr>
+        <td>#SF-1024</td>
+        <td>
+            <strong>Road Damage</strong>
+            <span class="table-subtext">BGC, Taguig</span>
+        </td>
+        <td>
+            <span class="priority-badge high">High</span>
+        </td>
+        <td>
+            <span class="status-badge pending">Pending</span>
+        </td>
+        <td class="department-cell">Not Assigned</td>
+        <td>October 24, 2026</td>
+        <td>
+            <a href="../review/rev.html?id=SF-1024" class="review-button">
+                Review
+            </a>
+        </td>
+    </tr>
 
-                            <tr>
-                                <td>#SF-1025</td>
-                                <td>
-                                    <strong>Broken Streetlight</strong>
-                                    <span class="table-subtext">Makati City</span>
-                                </td>
-                                <td>
-                                    <span class="priority-badge medium">Medium</span>
-                                </td>
-                                <td>
-                                    <span class="status-badge in-progress">In Progress</span>
-                                </td>
-                                <td>Oct 24, 2026</td>
-                                <td>
-                                    <a href="../review/rev.html?id=SF-1025" class="review-button">
-                                        Review
-                                    </a>
-                                </td>
-                            </tr>
+    <tr>
+        <td>#SF-1025</td>
+        <td>
+            <strong>Broken Streetlight</strong>
+            <span class="table-subtext">Makati City</span>
+        </td>
+        <td>
+            <span class="priority-badge medium">Medium</span>
+        </td>
+        <td>
+            <span class="status-badge in-progress">In Progress</span>
+        </td>
+        <td class="department-cell">Not Assigned</td>
+        <td>October 24, 2026</td>
+        <td>
+            <a href="../review/rev.html?id=SF-1025" class="review-button">
+                Review
+            </a>
+        </td>
+    </tr>
 
-                            <tr>
-                                <td>#SF-1026</td>
-                                <td>
-                                    <strong>Garbage Collection</strong>
-                                    <span class="table-subtext">Pasig City</span>
-                                </td>
-                                <td>
-                                    <span class="priority-badge low">Low</span>
-                                </td>
-                                <td>
-                                    <span class="status-badge pending">Pending</span>
-                                </td>
-                                <td>Oct 25, 2026</td>
-                                <td>
-                                    <a href="../review/rev.html?id=SF-1026" class="review-button">
-                                        Review
-                                    </a>
-                                </td>
-                            </tr>
-                        </tbody>
+    <tr>
+        <td>#SF-1026</td>
+        <td>
+            <strong>Garbage Collection</strong>
+            <span class="table-subtext">Pasig City</span>
+        </td>
+        <td>
+            <span class="priority-badge low">Low</span>
+        </td>
+        <td>
+            <span class="status-badge pending">Pending</span>
+        </td>
+        <td class="department-cell">Not Assigned</td>
+        <td>October 25, 2026</td>
+        <td>
+            <a href="../review/rev.html?id=SF-1026" class="review-button">
+                Review
+            </a>
+        </td>
+    </tr>
+</tbody>
+
                     </table>
                 </div>
 

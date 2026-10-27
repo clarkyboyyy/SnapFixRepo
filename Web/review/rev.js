@@ -2,6 +2,30 @@
 document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get("id") || "SF-1024";
+    const fromAssigned = params.get("from") === "assigned";
+
+    // Highlight the correct sidebar link
+    if (fromAssigned) {
+        document.getElementById("assigned-link")?.classList.add("active");
+    } else {
+        document.getElementById("incoming-link")?.classList.add("active");
+    }
+
+    // Set the breadcrumb and back button based on the source page
+    const sourceBreadcrumb = document.getElementById("source-breadcrumb");
+    const backLink = document.getElementById("back-link");
+
+    if (fromAssigned) {
+        if (sourceBreadcrumb) {
+            sourceBreadcrumb.href = "../incnmg/assgnd.html";
+            sourceBreadcrumb.textContent = "Assigned Tickets";
+        }
+
+        if (backLink) {
+            backLink.href = "../incnmg/assgnd.html";
+            backLink.innerHTML = "&larr; Back to Assigned Tickets";
+        }
+    }
 
     const sampleTickets = {
         "SF-1024": {
@@ -68,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function formatStatus(value) {
         return {
             "pending": "Pending",
+            "assigned": "Assigned",
             "in-progress": "In Progress",
             "resolved": "Resolved"
         }[value] || value;
@@ -133,7 +158,10 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
 
         if (!elements.department.value) {
-            showMessage("Please select a department before saving.", "error");
+            showMessage(
+                "Please select a department before saving.",
+                "error"
+            );
             elements.department.focus();
             return;
         }
@@ -149,6 +177,10 @@ document.addEventListener("DOMContentLoaded", function () {
             elements.department.focus();
             return;
         }
+
+        // Automatically set the status to Assigned
+        elements.status.value = "assigned";
+        ticket.status = "assigned";
 
         if (saveTicket()) {
             showMessage(

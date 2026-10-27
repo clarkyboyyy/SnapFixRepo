@@ -39,14 +39,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const statusBadge = row.querySelector(".status-badge");
             const priorityBadge = row.querySelector(".priority-badge");
+            const departmentCell = row.querySelector(".department-cell");
+
+            if (departmentCell) {
+             departmentCell.textContent =
+             ticket.department && ticket.department.trim()
+            ? ticket.department
+            : "Not Assigned";
+}
 
             if (statusBadge && ticket.status) {
                 const status = ticket.status.toLowerCase();
 
                 const statusLabels = {
                     "pending": "Pending",
+                    "assigned": "Assigned",
                     "in-progress": "In Progress",
-                    "resolved": "Resolved"
+                    "resolved": "Resolved",
+                    
                 };
 
                 statusBadge.textContent = statusLabels[status] || ticket.status;

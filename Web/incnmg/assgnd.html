@@ -1,0 +1,94 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assigned Tickets | SnapFix Admin</title>
+    <link rel="stylesheet" href="tckts.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">S</div>
+                <div class="brand-info">
+                    <h2>SnapFix Admin</h2>
+                    <p>ADMIN &amp; DISPATCH</p>
+                </div>
+            </div>
+
+            
+            <nav class="sidebar-navigation">
+                <p class="navigation-label">WORKSPACE</p>
+
+                <a href="tckts.html" class="nav-link">
+                    Incoming Tickets 
+                    <span class="ticket-count">3</span>
+                
+                </a>
+
+                <a href="assgnd.html" class="nav-link active">
+                    Assigned Tickets
+                </a>
+            </nav>
+
+
+            <div class="sidebar-profile">
+                <div class="profile-avatar">AD</div>
+                <div class="profile-info">
+                    <h3>Alex Dispatcher</h3>
+                    <p>Administrator</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-breadcrum">
+                    <span>Workspace</span>
+                    <span class="breadcrumb-divider">/</span>
+                    <span class="current-page">Assigned Tickets</span>
+                </div>
+
+                <div class="header-actions">
+                    <span class="admin-role">Administrator</span>
+                    <div class="header-avatar">AD</div>
+                </div>
+            </header>
+
+            <section class="page-heading">
+                <div class="heading-text">
+                    <h1>Assigned Tickets</h1>
+                    <p>View tickets assigned to their respective departments.</p>
+                </div>
+            </section>
+
+            <section class="ticket-management">
+                <div class="ticket-table-container">
+                    <table class="ticket-table">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Issue / Location</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Assigned To</th>
+                                <th>Date Submitted</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assigned-ticket-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    <p id="assigned-ticket-count">Loading assigned tickets...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="assgnd.js"></script>
+</body>
+</html>

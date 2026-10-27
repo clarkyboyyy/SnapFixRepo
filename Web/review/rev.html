@@ -19,14 +19,19 @@
                 </div>
             </div>
 
-            <nav class="sidebar-navigation">
-                <p class="navigation-label">WORKSPACE</p>
-                <a href="#" class="nav-link">Dashboard</a>
-                <a href="tckts.html" class="nav-link active">
-                    Incoming Tickets
-                    <span class="ticket-count">12</span>
-                </a>
-            </nav>
+           
+                <nav class="sidebar-navigation">
+                    <p class="navigation-label">WORKSPACE</p>
+
+                    <a href="../incnmg/tckts.html" class="nav-link" id="incoming-link">
+                        Incoming Tickets
+                        <span class="ticket-count">3</span>
+                    </a>
+
+                    <a href="../incnmg/assgnd.html" class="nav-link" id="assigned-link">
+                        Assigned Tickets
+                    </a>
+                </nav>
 
             <div class="sidebar-profile">
                 <div class="profile-avatar">AD</div>
@@ -39,22 +44,27 @@
 
         <main class="main-content">
             <header class="top-header">
-                <div class="header-breadcrumb">
-                   <a href="../incnmg/tckts.html">Incoming Tickets</a>
-                    <span>/</span>
+              
+                <div class="header-breadcrum">
+                    <span>Workspace</span>
+                    <span class="breadcrumb-divider">/</span>
+                    <a id="source-breadcrumb" href="../incnmg/tckts.html">
+                        Incoming Tickets
+                     
+                    </a>
+                    <span class="breadcrumb-divider">/</span>
                     <span class="current-page">Review Ticket</span>
                 </div>
-                <div class="header-actions">
-                    <span class="admin-role">Administrator</span>
-                    <div class="header-avatar">AD</div>
-                </div>
+
             </header>
 
             <section class="page-heading">
                 <div>
-                    <a class="back-link" href="../incnmg/tckts.html">
+                    
+                    <a class="back-link" id="back-link" href="../incnmg/tckts.html">
                         &larr; Back to Incoming Tickets
                     </a>
+ 
                     <h1>Review Ticket</h1>
                     <p>Review the submitted report and assign it to the appropriate department.</p>
                 </div>
@@ -127,8 +137,10 @@
                             <label for="ticket-status">Ticket Status</label>
                             <select id="ticket-status" required>
                                 <option value="pending">Pending</option>
+                                <option value="assigned">Assigned</option>
                                 <option value="in-progress">In Progress</option>
                                 <option value="resolved">Resolved</option>
+                               
                             </select>
                         </div>
 
