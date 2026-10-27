@@ -1,57 +1,63 @@
-// 1. Initialize Supabase Client (Removed /rest/v1/)
-const supabaseUrl = 'https://oymklmxvcftvrinjqryx.supabase.co'; 
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtsbXh2Y2Z0dnJpbmpxcnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjQ2NTMsImV4cCI6MjEwODY0MDY1M30.-5CEbJ1k8bRiWzEQCfGb8ANzTfwF3SccbbQZNau3kBc'; 
-const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-
 document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("signupForm");
     const password = document.getElementById("password");
     const confirmPassword = document.getElementById("confirmPassword");
-    
     const fullName = document.getElementById("fullName"); 
     const email = document.getElementById("email");
 
     form.addEventListener("submit", async function(event) {
+        event.preventDefault(); // Prevent form from refreshing the page
         confirmPassword.setCustomValidity("");
 
+        // 1. Password validation
         if (password.value !== confirmPassword.value) {
-            event.preventDefault();
-            
             confirmPassword.setCustomValidity("Passwords do not match. Please try again.");
             confirmPassword.reportValidity();
-        } else {
-            event.preventDefault(); 
-            
-            const nameValue = fullName.value.trim();
-            const emailValue = email.value.trim();
-            const passwordValue = password.value;
+            return;
+        }
+        
+        const nameValue = fullName.value.trim();
+        const emailValue = email.value.trim();
+        const passwordValue = password.value;
 
-            if (!nameValue || !emailValue || !passwordValue) {
-                alert("Please fill in all fields.");
-                return;
-            }
+        if (!nameValue || !emailValue || !passwordValue) {
+            alert("Please fill in all fields.");
+            return;
+        }
 
-            // Call Supabase auth.signUp using supabaseClient!
-            const { data, error } = await supabaseClient.auth.signUp({
-                email: emailValue,
-                password: passwordValue,
-                options: {
-                    data: {
-                        full_name: nameValue,
-                    },
+        // 2. Send data to the C# Backend via Fetch
+        try {
+            const response = await fetch("http://localhost:5141/api/auth/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
                 },
+                body: JSON.stringify({
+                    email: emailValue,
+                    password: passwordValue
+                })
             });
 
-            if (error) {
-                alert(`Error: ${error.message}`);
-                console.error("Sign up error:", error);
+            const data = await response.json();
+
+            // 3. Handle the response from C#
+            if (response.ok) {
+                alert(data.message); // Should trigger "Account created successfully!"
+                console.log("Success:", data);
+                
+                // Optional: redirect to login page automatically
+                window.location.href = "../loginui/loginUI.html"; 
             } else {
-                alert("Account created successfully!");
-                console.log("User data:", data);
+                // If email already exists or validation fails
+                alert(`Error: ${data.message}`); 
             }
+        } catch (error) {
+            console.error("Sign up error:", error);
+            alert("Failed to connect to the server. Is your C# backend running?");
         }
     });
 
+    // Clear validation warnings when user starts typing again
     confirmPassword.addEventListener("input", () => {
         confirmPassword.setCustomValidity("");
     });

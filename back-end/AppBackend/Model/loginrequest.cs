@@ -1,5 +1,5 @@
 
-namespace AppBackend.Models;
+namespace AppBackend.Model;
 public class LoginRequest
 {
     public required string email { get; set; }

@@ -1,12 +1,17 @@
 using System.ComponentModel.DataAnnotations.Schema;
+
 namespace AppBackend.Model
 {
-    [Table("Users")]
+    [Table("Users")] // Ensure this matches exactly how your table is named in Supabase
     public class User
     {
-        public int Id { get; set; } // Primary key for the database
+        [Column("id")]
+        public int Id { get; set; }
+
+        [Column("email")]
         public string Email { get; set; } = string.Empty;
+
+        [Column("password")]
         public string Password { get; set; } = string.Empty;
-        // You can add other fields here later, like 'Name' or 'Role'
     }
 }
