@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'data/local_account_store.dart';
 import 'data/sample_reports.dart';
 import 'models/report.dart';
@@ -16,6 +16,7 @@ import 'screen/submitted_report.dart';
 import 'screen/update.dart';
 import 'screen/welcome_screen.dart';
 import 'theme/app_theme.dart';
+import 'screen/signup.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,28 @@ Future<void> main() async {
   runApp(
     SnapFixApp(initialAccount: await LocalAccountStore().signedInAccount()),
   );
+
+  await Supabase.initialize(
+    url: 'https://oymklmxvcftvrinjqryx.supabase.co/rest/v1/',
+    publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtsbXh2Y2Z0dnJpbmpxcnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjQ2NTMsImV4cCI6MjEwODY0MDY1M30.-5CEbJ1k8bRiWzEQCfGb8ANzTfwF3SccbbQZNau3kBc',
+  );
+}
+final supabase = Supabase.instance.client;
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+  return MaterialApp(
+    home: SignupPage(
+      onSignedIn: (String email, String? name) {
+        // You can add logic here later for what happens after they sign up
+        print('Signed up with: $email');
+      },
+    ),
+  );
+}
 }
 
 class SnapFixApp extends StatelessWidget {

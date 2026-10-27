@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../data/local_account_store.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
 
@@ -16,7 +15,6 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _form = GlobalKey<FormState>();
-  final _store = LocalAccountStore();
   final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -41,25 +39,32 @@ class _SignupPageState extends State<SignupPage> {
       _error = null;
     });
 
-    final outcome = await _store.register(
-      name: _name.text,
-      email: _email.text,
-      password: _password.text,
-    );
+    try {
+      // 1. Call Supabase instead of _store.register
+      final response = await Supabase.instance.client.auth.signUp(
+        email: _email.text.trim(),
+        password: _password.text,
+        data: {
+          'full_name': _name.text.trim(), // Saves the name to Supabase metadata
+        },
+      );
 
-    if (!mounted) return;
-    if (!outcome.isSuccess) {
+      if (!mounted) return;
+
+      // 2. Handle Success
+      if (response.user != null) {
+        widget.onSignedIn(_email.text.trim(), _name.text.trim());
+        setState(() => _busy = false);
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } 
+    } catch (e) {
+      // 3. Handle Errors (e.g., email already taken, password too short)
+      if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = outcome.error;
+        _error = e.toString();
       });
-      return;
     }
-
-    final account = outcome.account!;
-    widget.onSignedIn(account.email, account.name);
-    setState(() => _busy = false);
-    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
