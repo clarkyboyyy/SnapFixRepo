@@ -13,5 +13,7 @@ namespace AppBackend.Data
         
         // If you haven't created a user.cs model yet, create one in your Model folder
         public DbSet<User> Users { get; set; }
+       
     }
+
 }

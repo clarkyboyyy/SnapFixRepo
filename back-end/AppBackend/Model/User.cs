@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AppBackend.Model
 {
-    [Table("Users")] // Ensure this matches exactly how your table is named in Supabase
+    [Table("Users")] 
     public class User
     {
         [Column("id")]

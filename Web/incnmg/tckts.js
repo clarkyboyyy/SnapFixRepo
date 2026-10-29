@@ -217,4 +217,56 @@ document.addEventListener("DOMContentLoaded", function () {
             filterTickets();
         }
     });
+
+
+async function fetchAndDisplayTickets() {
+    try {
+        const response = await fetch("http://localhost:5141/api/tickets");
+        const tickets = await response.json();
+        
+        console.log("Tickets received:", tickets);
+        
+        const tableBody = document.getElementById("ticketTable"); 
+        tableBody.innerHTML = ""; // Clear out placeholder text
+
+        // Check if the array is empty
+        if (!tickets || tickets.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='5' class='text-center'>No tickets found.</td></tr>";
+            return;
+        }
+
+        // Loop through the database tickets
+        tickets.forEach(ticket => {
+            // SKELETON KEY: Look for both lowercase and uppercase properties!
+            const id = ticket.id || ticket.Id || "N/A";
+            const title = ticket.title || ticket.Title || "No Title";
+            const description = ticket.description || ticket.Description || "";
+            const location = ticket.location || ticket.Location || "Unknown";
+            const status = ticket.status || ticket.Status || "Pending";
+            
+            const rawDate = ticket.dateSubmitted || ticket.DateSubmitted || ticket.date_submitted || new Date().toISOString(); 
+            const dateObj = new Date(rawDate);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+            const row = `
+                <tr>
+                    <td>${id}</td>
+                    <td><strong>${title}</strong><br><small>${description}</small></td>
+                    <td>${location}</td>
+                    <td>${formattedDate}</td>
+                    <td><span class="badge bg-warning text-dark">${status}</span></td>
+                </tr>
+            `;
+            
+            tableBody.innerHTML += row;
+        });
+        
+        console.log("Table successfully updated!");
+
+    } catch (error) {
+        console.error("Error loading tickets:", error);
+    }
+}
+
+fetchAndDisplayTickets();
 });

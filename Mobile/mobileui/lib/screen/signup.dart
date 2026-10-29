@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 /// New resident: name, email and a confirmed password.
 class SignupPage extends StatefulWidget {
@@ -40,29 +42,40 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      // 1. Call Supabase instead of _store.register
-      final response = await Supabase.instance.client.auth.signUp(
-        email: _email.text.trim(),
-        password: _password.text,
-        data: {
-          'full_name': _name.text.trim(), // Saves the name to Supabase metadata
-        },
+      // 1. Point to your local C# Backend API
+      var url = Uri.parse('http://localhost:5141/api/auth/register');
+
+      // 2. Send the registration data to C#
+      var response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": _email.text.trim(),
+          "password": _password.text,
+          "fullName": _name.text.trim()
+        }),
       );
 
       if (!mounted) return;
 
-      // 2. Handle Success
-      if (response.user != null) {
+      // 3. Handle Success (Status 200 OK or 201 Created)
+      if (response.statusCode == 200 || response.statusCode == 201) {
         widget.onSignedIn(_email.text.trim(), _name.text.trim());
         setState(() => _busy = false);
         Navigator.of(context).popUntil((route) => route.isFirst);
-      } 
+      } else {
+        // 4. Handle backend rejection (e.g., email already exists)
+        setState(() {
+          _busy = false;
+          _error = "Registration failed: ${response.body}";
+        });
+      }
     } catch (e) {
-      // 3. Handle Errors (e.g., email already taken, password too short)
+      // 5. Handle Network/Connection Errors
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = e.toString();
+        _error = "Cannot connect to server. Is the C# backend running?";
       });
     }
   }
@@ -149,7 +162,7 @@ class _SignupPageState extends State<SignupPage> {
             const SizedBox(height: 14),
             const Center(
               child: Text(
-                'Demo only: this profile stays on your device.',
+                'By creating an account, you agree to our Terms of Service and Privacy Policy.',
                 style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
               ),
             ),

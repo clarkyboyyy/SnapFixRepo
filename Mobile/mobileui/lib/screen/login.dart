@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../data/local_account_store.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
@@ -31,31 +32,49 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
-    if (_busy || !_form.currentState!.validate()) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+  if (!_form.currentState!.validate()) return;
+  
+  setState(() {
+    _busy = true; // <-- Starts the spinner
+    _error = null;
+  });
 
-    final outcome = await _store.signIn(
-      email: _email.text,
-      password: _password.text,
+  try {
+    var url = Uri.parse('http://localhost:5141/api/auth/login');
+    var response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": _email.text.trim(),
+        "password": _password.text,
+      }),
     );
 
     if (!mounted) return;
-    if (!outcome.isSuccess) {
-      setState(() {
-        _busy = false;
-        _error = outcome.error;
-      });
-      return;
-    }
 
-    final account = outcome.account!;
-    widget.onSignedIn(account.email, account.name);
-    setState(() => _busy = false);
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (response.statusCode == 200) {
+      // 1. Trigger the sign-in status
+      widget.onSignedIn(_email.text.trim(), null); 
+      
+      // 2. STOP THE SPINNER AND NAVIGATE AWAY (This was missing!)
+      setState(() => _busy = false);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      
+    } else {
+      // Handle Invalid password or email
+      setState(() {
+        _busy = false; // Stops spinner on error
+        _error = "Invalid email or password.";
+      });
+    }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _busy = false; // Stops spinner on connection error
+      _error = "Cannot connect to server.";
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 14),
             const Center(
               child: Text(
-                'Demo only: no credentials are sent anywhere.',
+                'By logging in, you agree to our Terms of Service and Privacy Policy.',
                 style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
               ),
             ),

@@ -1,49 +1,37 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 using System.Linq;
+using AppBackend.Model;
+using AppBackend.Data;
 
-[ApiController]
-[Route("api/[controller]")]
-public class TicketsController : ControllerBase
+namespace AppBackend.Controllers
 {
-    // GET: api/tickets
-    // Handles fetching the list and applying filters from the UI
-    [HttpGet]
-    public IActionResult GetTickets(
-        [FromQuery] string? search, 
-        [FromQuery] string? status, 
-        [FromQuery] string? priority)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TicketsController : ControllerBase
     {
-        // 1. Mock database table (matches the image data)
-        var tickets = new List<Ticket>
-        {
-            new Ticket { Id = "SF-1024", Title = "Road Damage", Location = "BGC, Taguig", Priority = "High", Status = "Pending", DateSubmitted = new DateTime(2026, 10, 24), Description = "" },
-            new Ticket { Id = "SF-1025", Title = "Broken Streetlight", Location = "Makati City", Priority = "Medium", Status = "In Progress", DateSubmitted = new DateTime(2026, 10, 24), Description = "" },
-            new Ticket { Id = "SF-1026", Title = "Garbage Collection", Location = "Pasig City", Priority = "Low", Status = "Pending", DateSubmitted = new DateTime(2026, 10, 25), Description = "" }
-        };
+        private readonly AppDbContext _context;
 
-        var query = tickets.AsQueryable();
-
-        // 2. Apply filters if they are provided by the front-end
-        if (!string.IsNullOrEmpty(status) && status != "All Statuses")
+        public TicketsController(AppDbContext context)
         {
-            query = query.Where(t => t.Status == status);
+            _context = context;
         }
 
-        if (!string.IsNullOrEmpty(priority) && priority != "All Priorities")
+        // GET: api/tickets (Used by your Web Admin HTML to view all tickets)
+        [HttpGet]
+        public IActionResult GetAllTickets()
         {
-            query = query.Where(t => t.Priority == priority);
+            var tickets = _context.Tickets.ToList();
+            return Ok(tickets);
         }
 
-        if (!string.IsNullOrEmpty(search))
+        // POST: api/tickets (Used by your Flutter app to submit a new ticket)
+        [HttpPost]
+        public IActionResult CreateTicket([FromBody] Ticket newTicket)
         {
-            // Search by Ticket ID or Issue (Title)
-            query = query.Where(t => 
-                t.Id.Contains(search, StringComparison.OrdinalIgnoreCase) || 
-                t.Title.Contains(search, StringComparison.OrdinalIgnoreCase));
+            _context.Tickets.Add(newTicket);
+            _context.SaveChanges();
+            
+            return CreatedAtAction(nameof(GetAllTickets), new { id = newTicket.Id }, newTicket);
         }
-
-        // 3. Return the filtered list to populate the table
-        return Ok(query.ToList());
     }
 }
