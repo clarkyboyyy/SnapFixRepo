@@ -1,272 +1,261 @@
 
 document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("ticket-search");
-    const statusFilter = document.getElementById("status-filter");
-    const priorityFilter = document.getElementById("priority-filter");
-    const table = document.querySelector(".ticket-table");
-    const tableBody = table?.querySelector("tbody");
-    const tableHeaders = table?.querySelectorAll("thead th");
-
-    if (!searchInput || !statusFilter || !priorityFilter || !tableBody) {
-        console.error("Ticket table elements were not found. Check your HTML IDs and classes.");
-        return;
-    }
-
     const storageKey = "snapfixTickets";
+    const apiUrl = "http://localhost:5141/api/tickets";
 
-    // Keep the original rows and identify each ticket by its SF number.
-    const rows = Array.from(tableBody.querySelectorAll("tr"));
+    const tbody = document.getElementById("ticketTable");
+    const searchInput = document.getElementById("ticket-search");
+    const countElement = document.getElementById("ticket-result-count");
+    const sidebarCount = document.getElementById("incoming-ticket-count");
 
-    function getTicketId(row) {
-        return row.textContent.match(/SF-\d+/)?.[0] || null;
-    }
+    const sampleTickets = [
+        {
+            id: "SF-1024",
+            issue: "Road Damage",
+            description: "Damaged road surface reported.",
+            location: "BGC, Taguig",
+            status: "pending",
+            date: "October 24, 2026"
+        },
+        {
+            id: "SF-1025",
+            issue: "Broken Streetlight",
+            description: "Streetlight needs maintenance.",
+            location: "Makati City",
+            status: "ongoing",
+            department: "Street Lighting",
+            date: "October 24, 2026"
+        },
+        {
+            id: "SF-1026",
+            issue: "Garbage Collection",
+            description: "Garbage collection issue reported.",
+            location: "Pasig City",
+            status: "pending",
+            date: "October 25, 2026"
+        }
+    ];
 
-    // Load saved changes from the Review Ticket page.
-    function loadSavedTicketChanges() {
-        let savedTickets = {};
+    let allTickets = [];
 
+    function getSavedTickets() {
         try {
-            savedTickets = JSON.parse(localStorage.getItem(storageKey)) || {};
+            return JSON.parse(localStorage.getItem(storageKey)) || {};
         } catch (error) {
             console.error("Could not read saved tickets:", error);
+            return {};
+        }
+    }
+
+    function normalizeStatus(status) {
+        const value = String(status || "pending")
+            .toLowerCase()
+            .replace(/\s+/g, "-");
+
+        if (
+            value === "assigned" ||
+            value === "in-progress"
+        ) {
+            return "ongoing";
         }
 
-        rows.forEach(function (row) {
-            const ticketId = getTicketId(row);
-            const ticket = ticketId ? savedTickets[ticketId] : null;
-
-            if (!ticket) return;
-
-            const statusBadge = row.querySelector(".status-badge");
-            const priorityBadge = row.querySelector(".priority-badge");
-            const departmentCell = row.querySelector(".department-cell");
-
-            if (departmentCell) {
-             departmentCell.textContent =
-             ticket.department && ticket.department.trim()
-            ? ticket.department
-            : "Not Assigned";
-}
-
-            if (statusBadge && ticket.status) {
-                const status = ticket.status.toLowerCase();
-
-                const statusLabels = {
-                    "pending": "Pending",
-                    "assigned": "Assigned",
-                    "in-progress": "In Progress",
-                    "resolved": "Resolved",
-                    
-                };
-
-                statusBadge.textContent = statusLabels[status] || ticket.status;
-                statusBadge.className = "status-badge " + status;
-            }
-
-            if (priorityBadge && ticket.priority) {
-                const priority = ticket.priority.toLowerCase();
-
-                priorityBadge.textContent =
-                    priority.charAt(0).toUpperCase() + priority.slice(1);
-
-                priorityBadge.className = "priority-badge " + priority;
-            }
-        });
+        return value === "ongoing" ? "ongoing" : "pending";
     }
 
-    loadSavedTicketChanges();
+    function normalizeTicket(ticket, fallbackId = "") {
+        const id = String(
+            ticket.id ??
+            ticket.Id ??
+            ticket.ticketId ??
+            ticket.TicketId ??
+            fallbackId
+        );
 
-    // Create a message for when no tickets match.
-    const emptyRow = document.createElement("tr");
-    emptyRow.innerHTML = `
-        <td colspan="6" style="text-align: center; padding: 24px;">
-            No tickets found.
-        </td>
-    `;
-    emptyRow.hidden = true;
-    tableBody.appendChild(emptyRow);
+        const rawDate =
+            ticket.date ||
+            ticket.dateSubmitted ||
+            ticket.DateSubmitted ||
+            ticket.date_submitted;
 
-    // Add a live result count.
-    const resultCount = document.createElement("p");
-    resultCount.className = "ticket-result-count";
-    resultCount.style.margin = "12px 0";
-    resultCount.style.fontSize = "13px";
+        let date = "Date unavailable";
 
-    const footer = document.querySelector(".table-footer");
+        if (rawDate) {
+            const parsedDate = new Date(rawDate);
 
-    if (footer) {
-        footer.prepend(resultCount);
-    } else {
-        table.parentElement.appendChild(resultCount);
-    }
-
-    // Search and filter tickets using the updated badge values.
-    function filterTickets() {
-        const searchText = searchInput.value.trim().toLowerCase();
-        const selectedStatus = statusFilter.value.toLowerCase();
-        const selectedPriority = priorityFilter.value.toLowerCase();
-
-        let visibleCount = 0;
-
-        rows.forEach(function (row) {
-            const rowText = row.textContent.toLowerCase();
-            const statusBadge = row.querySelector(".status-badge");
-            const priorityBadge = row.querySelector(".priority-badge");
-
-            const ticketStatus = statusBadge
-                ? Array.from(statusBadge.classList).find(
-                    name => name !== "status-badge"
-                ) || ""
-                : "";
-
-            const ticketPriority = priorityBadge
-                ? Array.from(priorityBadge.classList).find(
-                    name => name !== "priority-badge"
-                ) || ""
-                : "";
-
-            const matchesSearch = rowText.includes(searchText);
-
-            const matchesStatus =
-                selectedStatus === "" ||
-                ticketStatus === selectedStatus;
-
-            const matchesPriority =
-                selectedPriority === "" ||
-                ticketPriority === selectedPriority;
-
-            const isVisible =
-                matchesSearch && matchesStatus && matchesPriority;
-
-            row.hidden = !isVisible;
-
-            if (isVisible) visibleCount++;
-        });
-
-        emptyRow.hidden = visibleCount !== 0;
-        resultCount.textContent =
-            `Showing ${visibleCount} of ${rows.length} tickets`;
-    }
-
-    searchInput.addEventListener("input", filterTickets);
-    statusFilter.addEventListener("change", filterTickets);
-    priorityFilter.addEventListener("change", filterTickets);
-
-    // Make table headings sortable.
-    const sortDirections = {};
-
-    if (tableHeaders) {
-        tableHeaders.forEach(function (header, columnIndex) {
-            header.style.cursor = "pointer";
-            header.title = "Click to sort";
-
-            header.addEventListener("click", function () {
-                const ascending = sortDirections[columnIndex] !== true;
-                sortDirections[columnIndex] = ascending;
-
-                const sortedRows = [...rows].sort(function (a, b) {
-                    const cellA = a.cells[columnIndex]?.textContent.trim() || "";
-                    const cellB = b.cells[columnIndex]?.textContent.trim() || "";
-
-                    let comparison;
-
-                    if (columnIndex === 4) {
-                        comparison =
-                            (Date.parse(cellA) || 0) -
-                            (Date.parse(cellB) || 0);
-                    } else if (columnIndex === 2) {
-                        const priorityOrder = {
-                            high: 3,
-                            medium: 2,
-                            low: 1
-                        };
-
-                        comparison =
-                            (priorityOrder[cellA.toLowerCase()] || 0) -
-                            (priorityOrder[cellB.toLowerCase()] || 0);
-                    } else {
-                        comparison = cellA.localeCompare(
-                            cellB,
-                            undefined,
-                            { numeric: true, sensitivity: "base" }
-                        );
-                    }
-
-                    return ascending ? comparison : -comparison;
+            date = isNaN(parsedDate.getTime())
+                ? rawDate
+                : parsedDate.toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric"
                 });
+        }
 
-                sortedRows.forEach(row => tableBody.appendChild(row));
-                tableBody.appendChild(emptyRow);
-                filterTickets();
+        return {
+            ...ticket,
+            id,
+            issue: ticket.issue || ticket.title || ticket.Title || "No Title",
+            description: ticket.description || ticket.Description || "",
+            location: ticket.location || ticket.Location || "Unknown",
+            status: normalizeStatus(ticket.status || ticket.Status),
+            date,
+            department: ticket.department || ticket.Department || ""
+        };
+    }
+
+    // API data is loaded first, then local saved changes override it.
+    function getTicketsWithSavedChanges(sourceTickets) {
+        const savedTickets = getSavedTickets();
+        const ticketMap = new Map();
+
+        sourceTickets.forEach(function (sourceTicket) {
+            const ticket = normalizeTicket(sourceTicket);
+
+            if (ticket.id) {
+                ticketMap.set(ticket.id, ticket);
+            }
+        });
+
+        // Include saved tickets and apply their latest changes.
+        Object.entries(savedTickets).forEach(function ([savedId, savedTicket]) {
+            const ticket = normalizeTicket(savedTicket, savedId);
+            const existingTicket = ticketMap.get(ticket.id) || {};
+
+            ticketMap.set(ticket.id, {
+                ...existingTicket,
+                ...ticket,
+                id: ticket.id,
+                status: normalizeStatus(savedTicket.status || ticket.status)
             });
         });
+
+        return Array.from(ticketMap.values());
     }
 
-    // Initial result count.
-    filterTickets();
+    function renderTickets() {
+        const searchText = searchInput.value.trim().toLowerCase();
 
-    // Refresh ticket values if another page updates localStorage.
-    window.addEventListener("pageshow", function () {
-        loadSavedTicketChanges();
-        filterTickets();
-    });
+        const incomingTickets = allTickets.filter(function (ticket) {
+            return ticket.status === "pending";
+        });
+
+        const visibleTickets = incomingTickets.filter(function (ticket) {
+            return (
+                ticket.id.toLowerCase().includes(searchText) ||
+                ticket.issue.toLowerCase().includes(searchText) ||
+                ticket.location.toLowerCase().includes(searchText)
+            );
+        });
+
+        tbody.replaceChildren();
+
+        visibleTickets.forEach(function (ticket) {
+            const row = document.createElement("tr");
+
+            const idCell = document.createElement("td");
+            idCell.textContent = "#" + ticket.id;
+
+            const issueCell = document.createElement("td");
+
+            const issueTitle = document.createElement("strong");
+            issueTitle.textContent = ticket.issue;
+
+            const description = document.createElement("br");
+            const descriptionText = document.createElement("small");
+            descriptionText.textContent = ticket.description;
+
+            issueCell.append(issueTitle, description, descriptionText);
+
+            const locationCell = document.createElement("td");
+            locationCell.textContent = ticket.location;
+
+            const dateCell = document.createElement("td");
+            dateCell.textContent = ticket.date;
+
+            const statusCell = document.createElement("td");
+            const statusBadge = document.createElement("span");
+
+            statusBadge.className = "status-badge pending";
+            statusBadge.textContent = "Pending";
+
+            statusCell.appendChild(statusBadge);
+
+            const actionCell = document.createElement("td");
+            const reviewLink = document.createElement("a");
+
+            reviewLink.href =
+                "../review/rev.html?id=" + encodeURIComponent(ticket.id);
+
+            reviewLink.className = "review-button";
+            reviewLink.textContent = "Review";
+
+            actionCell.appendChild(reviewLink);
+
+            row.append(
+                idCell,
+                issueCell,
+                locationCell,
+                dateCell,
+                statusCell,
+                actionCell
+            );
+
+            tbody.appendChild(row);
+        });
+
+        if (visibleTickets.length === 0) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+
+            cell.colSpan = 6;
+            cell.textContent = "No pending tickets found.";
+            cell.style.textAlign = "center";
+            cell.style.padding = "24px";
+
+            row.appendChild(cell);
+            tbody.appendChild(row);
+        }
+
+        countElement.textContent =
+            `Showing ${visibleTickets.length} of ${incomingTickets.length} pending tickets`;
+
+        sidebarCount.textContent = incomingTickets.length;
+    }
+
+    async function loadTickets() {
+        try {
+            const response = await fetch(apiUrl);
+
+            if (!response.ok) {
+                throw new Error("API returned status " + response.status);
+            }
+
+            const data = await response.json();
+
+            allTickets = getTicketsWithSavedChanges(
+                Array.isArray(data) && data.length > 0
+                    ? data
+                    : sampleTickets
+            );
+
+        } catch (error) {
+            console.error("Could not load API tickets:", error);
+
+            allTickets = getTicketsWithSavedChanges(sampleTickets);
+        }
+
+        renderTickets();
+    }
+
+    searchInput.addEventListener("input", renderTickets);
+
+    window.addEventListener("pageshow", loadTickets);
 
     window.addEventListener("storage", function (event) {
         if (event.key === storageKey) {
-            loadSavedTicketChanges();
-            filterTickets();
+            loadTickets();
         }
     });
 
-
-async function fetchAndDisplayTickets() {
-    try {
-        const response = await fetch("http://localhost:5141/api/tickets");
-        const tickets = await response.json();
-        
-        console.log("Tickets received:", tickets);
-        
-        const tableBody = document.getElementById("ticketTable"); 
-        tableBody.innerHTML = ""; // Clear out placeholder text
-
-        // Check if the array is empty
-        if (!tickets || tickets.length === 0) {
-            tableBody.innerHTML = "<tr><td colspan='5' class='text-center'>No tickets found.</td></tr>";
-            return;
-        }
-
-        // Loop through the database tickets
-        tickets.forEach(ticket => {
-            // SKELETON KEY: Look for both lowercase and uppercase properties!
-            const id = ticket.id || ticket.Id || "N/A";
-            const title = ticket.title || ticket.Title || "No Title";
-            const description = ticket.description || ticket.Description || "";
-            const location = ticket.location || ticket.Location || "Unknown";
-            const status = ticket.status || ticket.Status || "Pending";
-            
-            const rawDate = ticket.dateSubmitted || ticket.DateSubmitted || ticket.date_submitted || new Date().toISOString(); 
-            const dateObj = new Date(rawDate);
-            const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-
-            const row = `
-                <tr>
-                    <td>${id}</td>
-                    <td><strong>${title}</strong><br><small>${description}</small></td>
-                    <td>${location}</td>
-                    <td>${formattedDate}</td>
-                    <td><span class="badge bg-warning text-dark">${status}</span></td>
-                </tr>
-            `;
-            
-            tableBody.innerHTML += row;
-        });
-        
-        console.log("Table successfully updated!");
-
-    } catch (error) {
-        console.error("Error loading tickets:", error);
-    }
-}
-
-fetchAndDisplayTickets();
+    loadTickets();
 });

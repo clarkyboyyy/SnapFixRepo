@@ -8,12 +8,8 @@
     <link rel="stylesheet" href="tckts.css">
 </head>
 <body>
-
     <div class="admin-layout">
-
-        <!-- Sidebar -->
         <aside class="sidebar">
-
             <div class="sidebar-brand">
                 <div class="brand-logo">S</div>
                 <div class="brand-info">
@@ -24,19 +20,15 @@
 
             <nav class="sidebar-navigation">
                 <p class="navigation-label">WORKSPACE</p>
-            
-             <a href="../incnmg/tckts.html"
-                class="nav-link active">
+
+                <a href="tckts.html" class="nav-link active">
                     Incoming Tickets
-                <span class="ticket-count">3</span>
+                    <span class="ticket-count" id="incoming-ticket-count">0</span>
+                </a>
 
-             <a href="assgnd.html" class="nav-link">
-                Assigned Tickets
-            </a>
-
-            </a>
-
-         
+                <a href="assgnd.html" class="nav-link">
+                    Assigned Tickets
+                </a>
             </nav>
 
             <div class="sidebar-profile">
@@ -46,15 +38,11 @@
                     <p>Administrator</p>
                 </div>
             </div>
-
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-
-            <!-- Top Header -->
             <header class="top-header">
-                <div class="header-breadcrum    uit">
+                <div class="header-breadcrum">
                     <span>Workspace</span>
                     <span class="breadcrumb-divider">/</span>
                     <span class="current-page">Incoming Tickets</span>
@@ -66,7 +54,6 @@
                 </div>
             </header>
 
-            <!-- Page Heading -->
             <section class="page-heading">
                 <div class="heading-text">
                     <h1>Incoming Tickets</h1>
@@ -74,42 +61,17 @@
                 </div>
             </section>
 
-            <!-- Ticket Management -->
             <section class="ticket-management">
-
                 <div class="ticket-toolbar">
                     <div class="search-box">
                         <label for="ticket-search">Search tickets</label>
                         <input
                             type="search"
                             id="ticket-search"
-                            name="ticket-search"
                             placeholder="Search by ticket ID or issue">
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="status-filter">Status</label>
-                        <select id="status-filter" name="status">
-                            <option value="">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="resolved">Resolved</option>
-                            <option value="assigned">Assigned</option>
-                        </select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="priority-filter">Priority</label>
-                        <select id="priority-filter" name="priority">
-                            <option value="">All Priorities</option>
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
                     </div>
                 </div>
 
-                <!-- Tickets Table -->
                 <div class="ticket-table-container">
                     <table class="ticket-table">
                         <thead>
@@ -117,30 +79,22 @@
                                 <th>Ticket ID</th>
                                 <th>Title / Description</th>
                                 <th>Location</th>
-                                <th>Date</th>
+                                <th>Date Submitted</th>
                                 <th>Status</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
-
-                        
-<tbody id="ticketTable">
-                            <!-- Sample ticket rows will be dynamically inserted here -->
-    
-
-    
-</tbody>
-
+                        <tbody id="ticketTable"></tbody>
                     </table>
                 </div>
 
                 <div class="table-footer">
-                    <p>Showing 3 sample tickets</p>
+                    <p id="ticket-result-count">Loading tickets...</p>
                 </div>
-
             </section>
-
         </main>
     </div>
-<script src="tckts.js"></script>
+
+    <script src="tckts.js"></script>
 </body>
 </html>

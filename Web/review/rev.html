@@ -19,19 +19,17 @@
                 </div>
             </div>
 
-           
-                <nav class="sidebar-navigation">
-                    <p class="navigation-label">WORKSPACE</p>
+            <nav class="sidebar-navigation">
+                <p class="navigation-label">WORKSPACE</p>
 
-                    <a href="../incnmg/tckts.html" class="nav-link" id="incoming-link">
-                        Incoming Tickets
-                        <span class="ticket-count">3</span>
-                    </a>
+                <a href="../incnmg/tckts.html" class="nav-link" id="incoming-link">
+                    Incoming Tickets
+                </a>
 
-                    <a href="../incnmg/assgnd.html" class="nav-link" id="assigned-link">
-                        Assigned Tickets
-                    </a>
-                </nav>
+                <a href="../incnmg/assgnd.html" class="nav-link" id="assigned-link">
+                    Assigned Tickets
+                </a>
+            </nav>
 
             <div class="sidebar-profile">
                 <div class="profile-avatar">AD</div>
@@ -44,41 +42,40 @@
 
         <main class="main-content">
             <header class="top-header">
-              
                 <div class="header-breadcrum">
                     <span>Workspace</span>
                     <span class="breadcrumb-divider">/</span>
                     <a id="source-breadcrumb" href="../incnmg/tckts.html">
                         Incoming Tickets
-                     
                     </a>
                     <span class="breadcrumb-divider">/</span>
                     <span class="current-page">Review Ticket</span>
                 </div>
-
             </header>
 
             <section class="page-heading">
                 <div>
-                    
                     <a class="back-link" id="back-link" href="../incnmg/tckts.html">
                         &larr; Back to Incoming Tickets
                     </a>
- 
+
                     <h1>Review Ticket</h1>
                     <p>Review the submitted report and assign it to the appropriate department.</p>
                 </div>
+
                 <span class="ticket-id" id="ticket-id">#SF-1024</span>
             </section>
 
             <div class="review-grid">
 
+                <!-- TICKET DETAILS -->
                 <section class="panel ticket-details">
                     <div class="panel-heading">
                         <div>
                             <h2>Ticket Details</h2>
                             <p>Information submitted by the citizen</p>
                         </div>
+
                         <span class="status-badge pending" id="display-status">
                             Pending
                         </span>
@@ -89,17 +86,9 @@
                         <h3 id="issue-title">Road Damage</h3>
                     </div>
 
-                    <div class="detail-row">
-                        <div class="detail-item">
-                            <span class="detail-label">Location</span>
-                            <p id="issue-location">BGC, Taguig</p>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Priority</span>
-                            <span class="priority-badge high" id="display-priority">
-                                High
-                            </span>
-                        </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Location</span>
+                        <p id="issue-location">BGC, Taguig</p>
                     </div>
 
                     <div class="detail-item">
@@ -110,8 +99,8 @@
                     <div class="detail-item">
                         <span class="detail-label">Description</span>
                         <p id="issue-description">
-                            A damaged road surface has been reported. Please inspect
-                            the location and arrange the necessary repairs.
+                            A damaged road surface has been reported.
+                            Please inspect the location and arrange the necessary repairs.
                         </p>
                     </div>
 
@@ -124,6 +113,7 @@
                     </div>
                 </section>
 
+                <!-- UPDATE AND ASSIGN -->
                 <section class="panel update-panel">
                     <div class="panel-heading">
                         <div>
@@ -133,29 +123,20 @@
                     </div>
 
                     <form id="review-form">
-                        <div class="form-group">
-                            <label for="ticket-status">Ticket Status</label>
-                            <select id="ticket-status" required>
-                                <option value="pending">Pending</option>
-                                <option value="assigned">Assigned</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="resolved">Resolved</option>
-                               
-                            </select>
-                        </div>
 
                         <div class="form-group">
-                            <label for="ticket-priority">Urgency / Priority</label>
-                            <select id="ticket-priority" required>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
+                            <label for="ticket-status">Ticket Status</label>
+
+                            <select id="ticket-status" required>
+                                <option value="pending">Pending</option>
+                                <option value="ongoing">Ongoing</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label for="ticket-department">Assign Department</label>
-                            <select id="ticket-department" required>
+
+                            <select id="ticket-department">
                                 <option value="">Select a department</option>
                                 <option value="Public Works">Public Works</option>
                                 <option value="Traffic Management">Traffic Management</option>
@@ -167,6 +148,7 @@
 
                         <div class="form-group">
                             <label for="admin-notes">Admin Notes</label>
+
                             <textarea
                                 id="admin-notes"
                                 rows="4"
@@ -191,6 +173,38 @@
                 </section>
 
             </div>
+
+            <!-- CONVERSATION -->
+            <section class="panel conversation-panel">
+                <div class="panel-heading">
+                    <div>
+                        <h2>Ticket Conversation</h2>
+                        <p>Communicate with the citizen about this report</p>
+                    </div>
+                </div>
+
+                <div class="conversation-messages" id="conversation-messages">
+                    <p class="conversation-notice" id="conversation-notice">
+                        Loading conversation...
+                    </p>
+                </div>
+
+                <form id="message-form" class="message-form">
+                    <input
+                        type="text"
+                        id="message-input"
+                        placeholder="Write a message..."
+                        maxlength="1000"
+                        autocomplete="off"
+                        required
+                    >
+
+                    <button type="submit" id="send-message-button">
+                        Send
+                    </button>
+                </form>
+            </section>
+
         </main>
     </div>
 
