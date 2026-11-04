@@ -113,14 +113,6 @@ class HomePage extends StatelessWidget {
                   child: ReportCard(report: r, onTap: () => onReport(r)),
                 ),
               ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-          child: FilledButton.icon(
-            onPressed: onCreate,
-            icon: const Icon(Icons.add),
-            label: const Text('Submit a report'),
-          ),
-        ),
       ],
     );
   }

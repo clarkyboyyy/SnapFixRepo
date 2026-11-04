@@ -6,10 +6,11 @@ import '../models/report.dart';
 import '../theme/app_theme.dart';
 import '../widget/page_header.dart';
 import '../widget/report_card.dart';
+import 'inquiry.dart';
 import 'report_progress.dart';
 
 /// Everything known about one report, and the entry point to its history.
-class ReportDetailsPage extends StatelessWidget {
+class ReportDetailsPage extends StatefulWidget {
   const ReportDetailsPage({
     super.key,
     required this.report,
@@ -20,6 +21,21 @@ class ReportDetailsPage extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
+  State<ReportDetailsPage> createState() => _ReportDetailsPageState();
+}
+
+class _ReportDetailsPageState extends State<ReportDetailsPage> {
+  IssueReport get report => widget.report;
+
+  Future<void> _openInquiry() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => InquiryPage(report: report)),
+    );
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final photo = report.photoPath;
 
@@ -28,7 +44,7 @@ class ReportDetailsPage extends StatelessWidget {
         title: const Text('Report Details'),
         actions: [
           IconButton(
-            onPressed: onDelete,
+            onPressed: widget.onDelete,
             tooltip: 'Delete report',
             icon: const Icon(Icons.delete_outline),
           ),
@@ -109,6 +125,43 @@ class ReportDetailsPage extends StatelessWidget {
                   builder: (_) => ReportProgressPage(report: report),
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: const Icon(Icons.forum_outlined, color: AppTheme.pink),
+              title: const Text(
+                'Ask the Admin',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                report.hasUnreadAdmin
+                    ? '${report.unreadFromAdmin} new reply from the barangay admin'
+                    : 'Ask about the status of this report',
+              ),
+              trailing: report.hasUnreadAdmin
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.softPink,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${report.unreadFromAdmin} new',
+                        style: const TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.pink,
+                        ),
+                      ),
+                    )
+                  : const Icon(Icons.chevron_right),
+              onTap: _openInquiry,
             ),
           ),
         ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
+
 import '../data/local_account_store.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
@@ -32,49 +34,48 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
-  if (!_form.currentState!.validate()) return;
-  
-  setState(() {
-    _busy = true; // <-- Starts the spinner
-    _error = null;
-  });
+    if (!_form.currentState!.validate()) return;
 
-  try {
-    var url = Uri.parse('http://localhost:5141/api/auth/login');
-    var response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": _email.text.trim(),
-        "password": _password.text,
-      }),
-    );
+    setState(() {
+      _busy = true; // <-- Starts the spinner
+      _error = null;
+    });
 
-    if (!mounted) return;
+    try {
+      var url = Uri.parse('http://localhost:5141/api/auth/login');
+      var response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": _email.text.trim(),
+          "password": _password.text,
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      // 1. Trigger the sign-in status
-      widget.onSignedIn(_email.text.trim(), null); 
-      
-      // 2. STOP THE SPINNER AND NAVIGATE AWAY (This was missing!)
-      setState(() => _busy = false);
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      
-    } else {
-      // Handle Invalid password or email
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        // 1. Trigger the sign-in status
+        widget.onSignedIn(_email.text.trim(), null);
+
+        // 2. STOP THE SPINNER AND NAVIGATE AWAY (This was missing!)
+        setState(() => _busy = false);
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        // Handle Invalid password or email
+        setState(() {
+          _busy = false; // Stops spinner on error
+          _error = "Invalid email or password.";
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _busy = false; // Stops spinner on error
-        _error = "Invalid email or password.";
+        _busy = false; // Stops spinner on connection error
+        _error = "Cannot connect to server.";
       });
     }
-  } catch (e) {
-    if (!mounted) return;
-    setState(() {
-      _busy = false; // Stops spinner on connection error
-      _error = "Cannot connect to server.";
-    });
   }
-}
 
   @override
   Widget build(BuildContext context) {

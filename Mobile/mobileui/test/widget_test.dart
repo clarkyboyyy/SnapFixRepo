@@ -8,6 +8,7 @@ import 'package:mobileui/models/report.dart';
 import 'package:mobileui/screen/auth_screen.dart';
 import 'package:mobileui/screen/edit_profile.dart';
 import 'package:mobileui/screen/home.dart';
+import 'package:mobileui/screen/inquiry.dart';
 import 'package:mobileui/screen/login.dart';
 import 'package:mobileui/screen/onboarding_screen.dart';
 import 'package:mobileui/screen/profile.dart';
@@ -307,6 +308,7 @@ void main() {
   ) async {
     final reports = createSampleReports();
     final report = reports.first;
+    final threaded = reports.firstWhere((r) => r.messages.isNotEmpty);
 
     final screens = <String, Widget>{
       'Welcome': WelcomeScreen(onGetStarted: () {}, onSkip: () {}),
@@ -319,6 +321,8 @@ void main() {
       ),
       'Details': ReportDetailsPage(report: report, onDelete: () {}),
       'Progress': ReportProgressPage(report: report),
+      'Inquiry': InquiryPage(report: report),
+      'Inquiry thread': InquiryPage(report: threaded),
       'Updates': Scaffold(
         body: UpdatesPage(reports: reports, onReport: (_) {}),
       ),
@@ -446,6 +450,104 @@ void main() {
     await pointer.moveTo(const Offset(0, 0));
     await tester.pumpAndSettle();
     expect(_cardBorder(tester).color, AppTheme.border);
+  });
+
+  group('admin inquiry', () {
+    IssueReport threaded() =>
+        createSampleReports().firstWhere((r) => r.id == 'SF-250104');
+
+    testWidgets('progress links to the conversation and clears unread', (
+      tester,
+    ) async {
+      _usePhone(tester);
+      final report = threaded();
+      expect(report.hasUnreadAdmin, isTrue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: ReportProgressPage(report: report),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ask the admin about this status'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ask the Admin'), findsOneWidget);
+      expect(find.textContaining('Good morning!'), findsOneWidget);
+      expect(report.hasUnreadAdmin, isFalse);
+    });
+
+    testWidgets('the progress page has no conversation card', (tester) async {
+      _usePhone(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: ReportProgressPage(report: threaded()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('CONVERSATION WITH ADMIN'), findsNothing);
+      expect(find.text('Barangay Admin'), findsNothing);
+    });
+
+    testWidgets('a resident can send a question to the admin', (tester) async {
+      _usePhone(tester);
+      final report = createSampleReports().firstWhere(
+        (r) => r.id == 'SF-250101',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: InquiryPage(report: report),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No messages yet'), findsOneWidget);
+
+      await tester.enterText(
+        find.byType(TextField),
+        'When will the streetlight be fixed?',
+      );
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('When will the streetlight be fixed?'), findsOneWidget);
+      expect(find.text('Waiting for the admin to reply'), findsOneWidget);
+      expect(report.messages.single.author, InquiryAuthor.user);
+      expect(report.hasUnreadAdmin, isFalse);
+    });
+
+    testWidgets('the report card flags an unread admin reply', (tester) async {
+      _usePhone(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: ReportCard(report: threaded(), onTap: () {}),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.forum), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(ReportCard), matching: find.text('1')),
+        findsOneWidget,
+      );
+    });
+
+    test('the updates feed includes admin replies', () {
+      final updates = buildUpdates(createSampleReports());
+      final replies = updates.where((u) => u.isFromAdmin).toList();
+
+      expect(replies, isNotEmpty);
+      expect(replies.any((u) => u.message.contains('Good morning!')), isTrue);
+    });
   });
 
   group('LocalAccountStore', () {

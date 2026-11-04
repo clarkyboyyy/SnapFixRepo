@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// A community issue that a resident can report to the barangay.
 class IssueReport {
-  const IssueReport({
+  IssueReport({
     required this.id,
     required this.title,
     required this.category,
@@ -12,7 +12,8 @@ class IssueReport {
     required this.createdAt,
     this.photoPath,
     this.progress = 0,
-  });
+    List<InquiryMessage>? messages,
+  }) : messages = messages ?? [];
 
   final String id;
   final String title;
@@ -28,8 +29,19 @@ class IssueReport {
   /// Completion of the barangay's work on this report, 0–100.
   final int progress;
 
+  /// Conversation thread between the resident and the barangay admin.
+  final List<InquiryMessage> messages;
+
   bool get isResolved => status == ReportStatus.resolved;
   bool get isOpen => status == ReportStatus.submitted;
+
+  InquiryMessage? get lastMessage => messages.isEmpty ? null : messages.last;
+
+  bool get hasUnreadAdmin =>
+      messages.any((message) => message.fromAdmin && !message.seen);
+
+  int get unreadFromAdmin =>
+      messages.where((message) => message.fromAdmin && !message.seen).length;
 
   IssueReport copyWith({String? id, String? status, int? progress}) {
     return IssueReport(
@@ -42,8 +54,28 @@ class IssueReport {
       createdAt: createdAt,
       photoPath: photoPath,
       progress: progress ?? this.progress,
+      messages: messages,
     );
   }
+}
+
+enum InquiryAuthor { user, admin }
+
+/// One message in the resident ↔ admin conversation about a report.
+class InquiryMessage {
+  InquiryMessage({
+    required this.text,
+    required this.author,
+    required this.sentAt,
+    this.seen = true,
+  });
+
+  final String text;
+  final InquiryAuthor author;
+  final DateTime sentAt;
+  bool seen;
+
+  bool get fromAdmin => author == InquiryAuthor.admin;
 }
 
 /// The lifecycle states a report moves through.

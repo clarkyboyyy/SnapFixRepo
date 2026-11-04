@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
+
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
 
 /// New resident: name, email and a confirmed password.
@@ -52,7 +55,7 @@ class _SignupPageState extends State<SignupPage> {
         body: jsonEncode({
           "email": _email.text.trim(),
           "password": _password.text,
-          "fullName": _name.text.trim()
+          "fullName": _name.text.trim(),
         }),
       );
 

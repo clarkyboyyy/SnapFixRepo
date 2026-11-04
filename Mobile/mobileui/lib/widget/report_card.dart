@@ -112,6 +112,38 @@ class _ReportCardState extends State<ReportCard> {
                     _formatDate(report.createdAt),
                     style: const TextStyle(fontSize: 11, color: AppTheme.muted),
                   ),
+                  if (report.hasUnreadAdmin) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.softPink,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.forum,
+                            size: 10,
+                            color: AppTheme.pink,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${report.unreadFromAdmin}',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.pink,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 12),

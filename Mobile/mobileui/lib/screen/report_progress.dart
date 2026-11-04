@@ -2,23 +2,39 @@ import 'package:flutter/material.dart';
 
 import '../models/report.dart';
 import '../theme/app_theme.dart';
+import '../widget/page_header.dart';
+import 'inquiry.dart';
 
-/// Step-by-step tracking history for a report.
-class ReportProgressPage extends StatelessWidget {
+/// Step-by-step tracking history for a report, plus the admin conversation.
+class ReportProgressPage extends StatefulWidget {
   const ReportProgressPage({super.key, required this.report});
 
   final IssueReport report;
 
+  @override
+  State<ReportProgressPage> createState() => _ReportProgressPageState();
+}
+
+class _ReportProgressPageState extends State<ReportProgressPage> {
+  IssueReport get _report => widget.report;
+
   /// Index of the stage the report currently sits at.
   int get _currentStage {
-    if (report.isResolved) return 3;
-    if (report.status == ReportStatus.inProgress) return 2;
-    if (report.progress > 0) return 1;
+    if (_report.isResolved) return 3;
+    if (_report.status == ReportStatus.inProgress) return 2;
+    if (_report.progress > 0) return 1;
     return 0;
+  }
+
+  Future<void> _openInquiry() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => InquiryPage(report: _report)));
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final report = _report;
     final stage = _currentStage;
     final color = AppTheme.statusColor(report.status);
 
@@ -82,15 +98,7 @@ class ReportProgressPage extends StatelessWidget {
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(2, 22, 2, 10),
-            child: Text(
-              'TRACKING HISTORY',
-              style: TextStyle(
-                color: AppTheme.pink,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: .6,
-              ),
-            ),
+            child: SectionLabel('TRACKING HISTORY'),
           ),
           for (var i = 0; i < _stages.length; i++)
             _TimelineRow(
@@ -108,9 +116,10 @@ class ReportProgressPage extends StatelessWidget {
               Expanded(
                 child: Text(
                   report.isResolved
-                      ? 'Resolved on ${report.location}. Reopen a report if the issue returns.'
-                      : 'Something look wrong? Edit or delete the report from its '
-                            'details page.',
+                      ? 'Resolved on ${report.location}. Reopen a report if the '
+                            'issue returns.'
+                      : 'Questions and replies stay attached to this report, so '
+                            'the admin always sees the full history.',
                   style: const TextStyle(
                     fontSize: 11.5,
                     height: 1.4,
@@ -121,6 +130,14 @@ class ReportProgressPage extends StatelessWidget {
             ],
           ),
         ],
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+        child: FilledButton.icon(
+          onPressed: _openInquiry,
+          icon: const Icon(Icons.question_answer_outlined, size: 18),
+          label: const Text('Ask the admin about this status'),
+        ),
       ),
     );
   }
@@ -187,7 +204,7 @@ class _TimelineRow extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(width: 14),
+          const SizedBox(width: 14),
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(bottom: isLast ? 0 : 22),

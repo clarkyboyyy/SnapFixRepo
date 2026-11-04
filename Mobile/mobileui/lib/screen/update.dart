@@ -12,6 +12,7 @@ class ReportUpdate {
     required this.message,
     required this.at,
     required this.isResolved,
+    this.isFromAdmin = false,
   });
 
   final String reportId;
@@ -19,6 +20,7 @@ class ReportUpdate {
   final String message;
   final DateTime at;
   final bool isResolved;
+  final bool isFromAdmin;
 }
 
 /// Derives the update feed from the reports the resident has filed.
@@ -46,6 +48,19 @@ List<ReportUpdate> buildUpdates(List<IssueReport> reports) {
               : 'Status changed to In Progress.',
           at: report.createdAt.add(const Duration(days: 2)),
           isResolved: report.isResolved,
+        ),
+      );
+    }
+
+    for (final message in report.messages.where((m) => m.fromAdmin)) {
+      updates.add(
+        ReportUpdate(
+          reportId: report.id,
+          reportTitle: report.title,
+          message: 'Admin replied: ${message.text}',
+          at: message.sentAt,
+          isResolved: false,
+          isFromAdmin: true,
         ),
       );
     }
@@ -117,7 +132,9 @@ class _UpdateTile extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: color.withValues(alpha: .12),
           child: Icon(
-            update.isResolved
+            update.isFromAdmin
+                ? Icons.forum_outlined
+                : update.isResolved
                 ? Icons.check_circle_outline
                 : Icons.campaign_outlined,
             color: color,

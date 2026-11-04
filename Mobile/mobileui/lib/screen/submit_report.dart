@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import '../ticketservice.dart';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -65,36 +67,35 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
   }
 
   void _submit() async {
-  // Stop if the form is empty or invalid
-  if (!_form.currentState!.validate()) return;
+    // Stop if the form is empty or invalid
+    if (!_form.currentState!.validate()) return;
 
-  try {
-    // 1. Grab the text from your existing controllers
-    String title = _title.text.trim();
-    String location = _location.text.trim();
-    String description = _description.text.trim();
+    try {
+      // 1. Grab the text from your existing controllers
+      String title = _title.text.trim();
+      String location = _location.text.trim();
+      String description = _description.text.trim();
 
-    // 2. Send the report to your C# backend!
-    await TicketService.submitTicket(title, location, description);
+      // 2. Send the report to your C# backend!
+      await TicketService.submitTicket(title, location, description);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    // 3. Show a success message on the screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Report submitted successfully!")),
-    );
+      // 3. Show a success message on the screen
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Report submitted successfully!")),
+      );
 
-    // 4. Close the report screen and go back
-    Navigator.of(context).pop();
-
-  } catch (e) {
-    // 5. Handle any connection errors
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error connecting to server: $e")),
-    );
+      // 4. Close the report screen and go back
+      Navigator.of(context).pop();
+    } catch (e) {
+      // 5. Handle any connection errors
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error connecting to server: $e")));
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {

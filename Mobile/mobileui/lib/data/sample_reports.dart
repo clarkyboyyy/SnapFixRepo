@@ -49,6 +49,22 @@ List<IssueReport> createSampleReports() => [
     status: 'In Progress',
     progress: 60,
     createdAt: DateTime(2026, 10, 14, 9, 30),
+    messages: [
+      InquiryMessage(
+        text:
+            'Hi, any update on the pothole? It gets deeper whenever it rains.',
+        author: InquiryAuthor.user,
+        sentAt: DateTime(2026, 10, 18, 18, 20),
+      ),
+      InquiryMessage(
+        text:
+            'Good morning! The crew is scheduled for Oct 21. We will post an '
+            'update here once it is patched.',
+        author: InquiryAuthor.admin,
+        sentAt: DateTime(2026, 10, 19, 9, 12),
+        seen: false,
+      ),
+    ],
   ),
   IssueReport(
     id: 'SF-250105',
@@ -60,6 +76,18 @@ List<IssueReport> createSampleReports() => [
     status: 'Resolved',
     progress: 100,
     createdAt: DateTime(2026, 10, 3, 15, 0),
+    messages: [
+      InquiryMessage(
+        text: 'Will the branches near the playground lights be cut too?',
+        author: InquiryAuthor.user,
+        sentAt: DateTime(2026, 10, 4, 10, 5),
+      ),
+      InquiryMessage(
+        text: 'Yes, the same crew will clear those branches during the visit.',
+        author: InquiryAuthor.admin,
+        sentAt: DateTime(2026, 10, 4, 13, 15),
+      ),
+    ],
   ),
   IssueReport(
     id: 'SF-250106',
