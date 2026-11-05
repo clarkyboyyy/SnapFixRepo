@@ -8,6 +8,38 @@ import 'package:http/http.dart' as http;
 
 import 'dart:convert';
 
+// 1. Email Validator
+String? validateEmail(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return 'Email is required';
+  }
+  
+  String trimmedValue = value.trim();
+  
+  // This regular expression strictly allows only Gmail addresses (@gmail.com)
+  bool isGmail = RegExp(r"^[a-zA-Z0-9._%+-]+@gmail\.com$", caseSensitive: false).hasMatch(trimmedValue);
+  
+  if (!isGmail) {
+    return 'Invalid Email. Only Gmail addresses are allowed.';
+  }
+  
+  return null; // Valid!
+}
+
+// 2. Password Validator (8+ chars, 1 uppercase, 1 lowercase, 1 number)
+String? validatePassword(String? value) {
+  if (value == null || value.isEmpty) {
+    return 'Password is required';
+  }
+  
+  bool isValidFormat = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$').hasMatch(value);
+  
+  if (!isValidFormat) {
+    return 'Must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number';
+  }
+  
+  return null; // Valid!
+}
 /// New resident: name, email and a confirmed password.
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key, required this.onSignedIn});
@@ -117,7 +149,7 @@ class _SignupPageState extends State<SignupPage> {
             AuthField(
               label: 'Password',
               controller: _password,
-              hint: 'At least 6 characters',
+              hint: 'At least 8 characters',
               obscure: !_showPassword,
               validator: validatePassword,
             ),

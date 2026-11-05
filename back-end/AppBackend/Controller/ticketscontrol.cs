@@ -26,12 +26,31 @@ namespace AppBackend.Controllers
 
         // POST: api/tickets (Used by your Flutter app to submit a new ticket)
         [HttpPost]
+        [HttpPost]
         public IActionResult CreateTicket([FromBody] Ticket newTicket)
         {
-            _context.Tickets.Add(newTicket);
-            _context.SaveChanges();
-            
-            return CreatedAtAction(nameof(GetAllTickets), new { id = newTicket.Id }, newTicket);
+            try
+            {
+                if (newTicket == null)
+                {
+                    return BadRequest("Invalid ticket data.");
+                }
+
+                newTicket.Status = string.IsNullOrEmpty(newTicket.Status) ? "Submitted" : newTicket.Status;
+
+                _context.Tickets.Add(newTicket);
+                _context.SaveChanges();
+                
+                return Ok(newTicket);
+            }
+            catch (Exception ex)
+            {
+                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                Console.WriteLine($"DB Error: {innerMsg}");
+                
+                // Return plain text so Flutter can instantly read the error message
+                return Content(innerMsg, "text/plain");
+            }
         }
-    }
 }
+    }

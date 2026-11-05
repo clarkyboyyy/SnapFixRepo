@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../ticketservice.dart';
 import '../models/report.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_format.dart';
@@ -54,22 +54,44 @@ class _InquiryPageState extends State<InquiryPage> {
     super.dispose();
   }
 
-  void _send() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
+ Future<void> _send() async {
+  final text = _controller.text.trim();
+  if (text.isEmpty) return;
+  
+  // Save the text before clearing the controller
+  final sentText = text;
+  
+  // Clear UI immediately for a snappy feel
+  setState(() {
+    _controller.clear();
+  });
+  _focus.unfocus();
+
+  try {
+    // Transmit to C# API
+    await TicketService.sendMessage(_report.id, sentText);
+
+    // Update the chat bubble list ONLY if successful
     setState(() {
       _messages.add(
         InquiryMessage(
-          text: text,
+          text: sentText,
           author: InquiryAuthor.user,
           sentAt: DateTime.now(),
         ),
       );
-      _controller.clear();
     });
-    _focus.unfocus();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+    
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not send message: $e')),
+      );
+    }
   }
+}
 
   void _usePrompt(String prompt) {
     _controller.text = prompt;

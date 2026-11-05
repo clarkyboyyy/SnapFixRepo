@@ -205,22 +205,22 @@ class _SnapFixShellState extends State<SnapFixShell> {
   }
 
   void _addReport(IssueReport draft) {
-    final saved = draft.copyWith(id: 'SF-LOCAL-${_serial++}');
-    setState(() {
-      _reports.insert(0, saved);
-      _tab = 1;
-    });
-    _open(
-      SubmittedReportPage(
-        reportId: saved.id,
-        onViewReports: () => Navigator.pop(context),
-        onBackToHome: () {
-          setState(() => _tab = 0);
-          Navigator.pop(context);
-        },
-      ),
-    );
-  }
+  setState(() {
+    _reports.insert(0, draft);
+    _tab = 1;
+  });
+  
+  _open(
+    SubmittedReportPage(
+      reportId: draft.id,
+      onViewReports: () => Navigator.pop(context),
+      onBackToHome: () {
+        setState(() => _tab = 0);
+        Navigator.pop(context);
+      },
+    ),
+  );
+}
 
   void _openAuth() =>
       _open(AuthScreen(onSignedIn: (email, name) => _onSignedIn(email, name)));

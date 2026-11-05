@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'dart:convert';
-
-import '../data/local_account_store.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
 
@@ -17,9 +14,9 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
+
 class _LoginPageState extends State<LoginPage> {
   final _form = GlobalKey<FormState>();
-  final _store = LocalAccountStore();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;

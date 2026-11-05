@@ -12,6 +12,10 @@ import '../widget/page_header.dart';
 /// The "New Report" form: what the issue is, where it is, and an optional
 /// photo. Builds an [IssueReport] and hands it to [onSubmitted]; the caller
 /// owns persistence and navigation.
+/// 
+final newId = 'SF-${DateTime.now().millisecondsSinceEpoch}';
+
+
 class SubmitReportPage extends StatefulWidget {
   const SubmitReportPage({super.key, required this.onSubmitted});
 
@@ -31,6 +35,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
   IssueCategory? _category;
   File? _photo;
   bool _picking = false;
+  bool _isSubmitting = false; // <-- Prevents multiple taps and UI freezing
 
   @override
   void dispose() {
@@ -67,33 +72,58 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
   }
 
   void _submit() async {
-    // Stop if the form is empty or invalid
+    if (_isSubmitting) return;
     if (!_form.currentState!.validate()) return;
 
+    setState(() => _isSubmitting = true); // Lock UI
+
     try {
-      // 1. Grab the text from your existing controllers
       String title = _title.text.trim();
       String location = _location.text.trim();
       String description = _description.text.trim();
+      String categoryLabel = _category?.label ?? 'General';
+      String? photoPath = _photo?.path;
 
-      // 2. Send the report to your C# backend!
-      await TicketService.submitTicket(title, location, description);
+      // 1. Send the report with a 10-second timeout so it doesn't hang forever
+      await TicketService.submitTicket(newId,title, location, description)
+          .timeout(const Duration(seconds: 10));
+          if (mounted) {
+          Navigator.pop(context);
+}
+
+      // 2. Build the IssueReport instance
+      final report = IssueReport(
+        id: newId,
+        title: title,
+        category: categoryLabel,
+        description: description,
+        location: location,
+        status: ReportStatus.submitted,
+        createdAt: DateTime.now(),
+        photoPath: photoPath,
+        progress: 0,
+      );
+
+      // 3. Notify parent screen
+      widget.onSubmitted(report);
 
       if (!mounted) return;
 
-      // 3. Show a success message on the screen
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Report submitted successfully!")),
       );
 
-      // 4. Close the report screen and go back
       Navigator.of(context).pop();
     } catch (e) {
-      // 5. Handle any connection errors
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error connecting to server: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Submission failed: $e")),
+      );
+    } finally {
+      // 4. CRUCIAL: Always unlock the UI whether it succeeds or fails
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -275,9 +305,18 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         child: FilledButton.icon(
-          onPressed: _submit,
-          icon: const Icon(Icons.send_rounded, size: 19),
-          label: const Text('Submit New Report'),
+          onPressed: _isSubmitting ? null : _submit, // <-- Disables button and prevents freeze
+          icon: _isSubmitting
+              ? const SizedBox(
+                  width: 19,
+                  height: 19,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.send_rounded, size: 19),
+          label: Text(_isSubmitting ? 'Submitting...' : 'Submit New Report'),
         ),
       ),
     );
@@ -358,7 +397,7 @@ class _CategoryPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
+    return BoxConstraints == BoxConstraints ? Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
@@ -384,7 +423,7 @@ class _CategoryPicker extends StatelessWidget {
             ),
           ),
       ],
-    );
+    ) : const Wrap();
   }
 }
 

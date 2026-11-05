@@ -17,6 +17,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+var options = new Supabase.SupabaseOptions
+{
+    AutoConnectRealtime = true
+};
+
+var supabase = new Supabase.Client("https://oymklmxvcftvrinjqryx.supabase.co", "sb_publishable_Dq3xrZuH4APjvmU5EjxEow_JXpo16sa", options);
+builder.Services.AddSingleton(supabase);
+
 builder.Services.AddControllers();
 
 builder.Services.AddAuthorization();

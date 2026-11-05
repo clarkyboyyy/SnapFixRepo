@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
 
     // --------------------------------
@@ -10,11 +9,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const fromAssigned = params.get("from") === "assigned";
 
     const storageKey = "snapfixTickets";
+    const API_BASE_URL = "http://localhost:5141";
+    
+    // Set active ticket ID dynamically from URL parameter
+    let activeTicketId = ticketId;
 
-    // Backend conversation routes.
-    // These are proposed routes and must be implemented by the backend developer.
-    const messagesApiUrl =
-        `http://localhost:5141/api/tickets/${encodeURIComponent(ticketId)}/messages`;
+    // Backend conversation route
+    const messagesApiUrl = `${API_BASE_URL}/api/messages/${activeTicketId}`;
 
     // --------------------------------
     // SIDEBAR AND BREADCRUMB
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --------------------------------
-    // SAMPLE TICKETS
+    // SAMPLE TICKETS FALLBACK
     // --------------------------------
 
     const sampleTickets = {
@@ -89,12 +90,72 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let savedTickets = getSavedTickets();
 
-    const ticket = {
-        ...(sampleTickets[ticketId] || sampleTickets["SF-1024"]),
-        ...(savedTickets[ticketId] || {})
+    // Initial fallback placeholder while loading
+    let ticket = savedTickets[ticketId] || sampleTickets[ticketId] || {
+        issue: "Loading ticket...",
+        location: "Loading...",
+        status: "pending",
+        date: "Loading...",
+        description: "Fetching ticket details..."
     };
 
-    // Support older status values already saved in localStorage.
+    // Helper to normalize and render ticket data
+    function applyTicketData(rawTicket) {
+        const normalizedDate = rawTicket.date || rawTicket.dateSubmitted || rawTicket.DateSubmitted || "Date unavailable";
+        
+        ticket = {
+            issue: rawTicket.issue || rawTicket.title || rawTicket.Title || "No Title",
+            location: rawTicket.location || rawTicket.Location || "Unknown",
+            status: normalizeStatus(rawTicket.status || rawTicket.Status),
+            date: normalizedDate,
+            description: rawTicket.description || rawTicket.Description || "No description provided.",
+            department: rawTicket.department || rawTicket.Department || "",
+            notes: rawTicket.notes || "",
+            ...(savedTickets[ticketId] || {}) // LocalStorage overrides take priority
+        };
+        renderTicket();
+    }
+
+    // If it's already in sample tickets or localStorage, render immediately
+    if (savedTickets[ticketId] || sampleTickets[ticketId]) {
+        applyTicketData(ticket);
+    } else {
+        // Fetch all tickets from backend API and find the matching one
+        fetch(`${API_BASE_URL}/api/tickets`)
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to fetch tickets list");
+                return res.json();
+            })
+            .then(data => {
+                const ticketsArray = Array.isArray(data) ? data : (data.tickets || []);
+                const found = ticketsArray.find(t => {
+                    const tid = String(t.id ?? t.Id ?? t.ticketId ?? t.TicketId ?? "");
+                    return tid === ticketId;
+                });
+
+                if (found) {
+                    applyTicketData(found);
+                } else {
+                    // Fallback if not found anywhere
+                    ticket = {
+                        issue: "Ticket Not Found",
+                        location: "Unknown",
+                        status: "pending",
+                        date: "N/A",
+                        description: `Could not find ticket ID #${ticketId} in database.`
+                    };
+                    renderTicket();
+                }
+            })
+            .catch(err => {
+                console.error("Error loading ticket from API:", err);
+                ticket.issue = "Error Loading Ticket";
+                ticket.description = "Could not connect to backend tickets API.";
+                renderTicket();
+            });
+    }
+
+    // Support older status values saved in localStorage
     function normalizeStatus(value) {
         const status = String(value || "pending")
             .toLowerCase()
@@ -152,10 +213,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateStatusBadge() {
+        if (!elements.displayStatus) return;
         elements.displayStatus.textContent = formatStatus(ticket.status);
-
-        elements.displayStatus.className =
-            `status-badge ${ticket.status}`;
+        elements.displayStatus.className = `status-badge ${ticket.status}`;
     }
 
     // --------------------------------
@@ -163,19 +223,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // --------------------------------
 
     function renderTicket() {
-        elements.ticketId.textContent = `#${ticketId}`;
-        elements.issue.textContent = ticket.issue || "No Title";
-        elements.location.textContent = ticket.location || "Unknown";
-        elements.date.textContent = ticket.date || "Date unavailable";
-        elements.description.textContent =
-            ticket.description || "No description provided.";
+        if (elements.ticketId) elements.ticketId.textContent = `#${ticketId}`;
+        if (elements.issue) elements.issue.textContent = ticket.issue || "No Title";
+        if (elements.location) elements.location.textContent = ticket.location || "Unknown";
+        if (elements.date) elements.date.textContent = ticket.date || "Date unavailable";
+        if (elements.description) elements.description.textContent = ticket.description || "No description provided.";
 
-        elements.status.value = ticket.status;
-        elements.department.value = ticket.department || "";
-        elements.notes.value = ticket.notes || "";
+        if (elements.status) elements.status.value = ticket.status;
+        if (elements.department) elements.department.value = ticket.department || "";
+        if (elements.notes) elements.notes.value = ticket.notes || "";
 
-        elements.assignment.textContent =
-            ticket.department || "Not assigned";
+        if (elements.assignment) elements.assignment.textContent = ticket.department || "Not assigned";
 
         updateStatusBadge();
     }
@@ -184,8 +242,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // FORM MESSAGE
     // --------------------------------
 
-    function showMessage(message, type) {
-        elements.message.textContent = message;
+    function showMessage(msg, type) {
+        if (!elements.message) return;
+        elements.message.textContent = msg;
         elements.message.className = `form-message ${type}`;
     }
 
@@ -194,43 +253,29 @@ document.addEventListener("DOMContentLoaded", function () {
     // --------------------------------
 
     function saveTicket() {
+        const selectedStatus = elements.status ? elements.status.value : "pending";
+        const selectedDepartment = elements.department ? elements.department.value : "";
 
-        const selectedStatus = elements.status.value;
-        const selectedDepartment = elements.department.value;
-
-        // A department is required for Ongoing tickets.
         if (selectedStatus === "ongoing" && !selectedDepartment) {
-            showMessage(
-                "Please select a department before setting the ticket to Ongoing.",
-                "error"
-            );
-
-            elements.department.focus();
+            showMessage("Please select a department before setting the ticket to Ongoing.", "error");
+            if (elements.department) elements.department.focus();
             return false;
         }
 
         ticket.status = selectedStatus;
         ticket.department = selectedDepartment;
-        ticket.notes = elements.notes.value.trim();
+        ticket.notes = elements.notes ? elements.notes.value.trim() : "";
 
         savedTickets = getSavedTickets();
         savedTickets[ticketId] = ticket;
 
         try {
             localStorage.setItem(storageKey, JSON.stringify(savedTickets));
-
             renderTicket();
-
             return true;
-
         } catch (error) {
             console.error("Could not save ticket:", error);
-
-            showMessage(
-                "Could not save changes in this browser.",
-                "error"
-            );
-
+            showMessage("Could not save changes in this browser.", "error");
             return false;
         }
     }
@@ -239,70 +284,57 @@ document.addEventListener("DOMContentLoaded", function () {
     // SAVE CHANGES BUTTON
     // --------------------------------
 
-    elements.form.addEventListener("submit", function (event) {
-        event.preventDefault();
-
-        if (saveTicket()) {
-            showMessage(
-                "Ticket changes saved successfully. Return to the ticket list to see its updated status.",
-                "success"
-            );
-        }
-    });
+    if (elements.form) {
+        elements.form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            if (saveTicket()) {
+                showMessage("Ticket changes saved successfully. Return to the ticket list to see its updated status.", "success");
+            }
+        });
+    }
 
     // --------------------------------
     // ASSIGN TICKET BUTTON
     // --------------------------------
 
-    elements.assignButton.addEventListener("click", function () {
+    if (elements.assignButton) {
+        elements.assignButton.addEventListener("click", function () {
+            if (!elements.department || !elements.department.value) {
+                showMessage("Please select a department first.", "error");
+                if (elements.department) elements.department.focus();
+                return;
+            }
 
-        if (!elements.department.value) {
-            showMessage(
-                "Please select a department first.",
-                "error"
-            );
+            if (elements.status) elements.status.value = "ongoing";
 
-            elements.department.focus();
-            return;
-        }
-
-        elements.status.value = "ongoing";
-
-        if (saveTicket()) {
-            showMessage(
-                `Ticket is now Ongoing and assigned to ${ticket.department}.`,
-                "success"
-            );
-        }
-    });
+            if (saveTicket()) {
+                showMessage(`Ticket is now Ongoing and assigned to ${ticket.department}.`, "success");
+            }
+        });
+    }
 
     // --------------------------------
     // CONVERSATION DISPLAY
     // --------------------------------
 
-    function displayConversationMessage(message) {
+    function displayConversationMessage(msg) {
+        if (!elements.conversation) return;
 
         const messageBox = document.createElement("div");
         messageBox.className = "conversation-message";
 
         const sender = document.createElement("strong");
-        sender.textContent =
-            message.senderRole || message.sender || "User";
+        sender.textContent = msg.senderType || msg.sender || "User";
 
         const content = document.createElement("p");
-        content.textContent =
-            message.content || message.message || "";
+        content.textContent = msg.message || msg.content || "";
 
         const timestamp = document.createElement("small");
-
-        if (message.sentAt || message.createdAt || message.timestamp) {
-            const date = new Date(
-                message.sentAt || message.createdAt || message.timestamp
-            );
-
-            timestamp.textContent = isNaN(date.getTime())
-                ? ""
-                : date.toLocaleString();
+        const timestampValue = msg.dateSent || msg.sentAt || msg.createdAt || msg.timestamp;
+        
+        if (timestampValue) {
+            const date = new Date(timestampValue);
+            timestamp.textContent = isNaN(date.getTime()) ? "" : date.toLocaleString();
         }
 
         messageBox.appendChild(sender);
@@ -312,12 +344,13 @@ document.addEventListener("DOMContentLoaded", function () {
         elements.conversation.appendChild(messageBox);
     }
 
-    function showConversationNotice(message) {
+    function showConversationNotice(messageText) {
+        if (!elements.conversation) return;
         elements.conversation.innerHTML = "";
 
         const notice = document.createElement("p");
         notice.className = "conversation-notice";
-        notice.textContent = message;
+        notice.textContent = messageText;
 
         elements.conversation.appendChild(notice);
     }
@@ -327,7 +360,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // --------------------------------
 
     async function loadConversation() {
-
         showConversationNotice("Loading conversation...");
 
         try {
@@ -338,13 +370,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const messages = await response.json();
-
+            if (!elements.conversation) return;
             elements.conversation.innerHTML = "";
 
             if (!Array.isArray(messages) || messages.length === 0) {
-                showConversationNotice(
-                    "No messages yet. You can start the conversation."
-                );
+                showConversationNotice("No messages yet. You can start the conversation.");
                 return;
             }
 
@@ -352,10 +382,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         } catch (error) {
             console.error("Could not load conversation:", error);
-
-            showConversationNotice(
-                "Conversation is not connected yet. The backend messaging API needs to be implemented."
-            );
+            showConversationNotice("Conversation is not connected yet. The backend messaging API needs to be implemented.");
         }
     }
 
@@ -363,51 +390,46 @@ document.addEventListener("DOMContentLoaded", function () {
     // SEND MESSAGE TO BACKEND
     // --------------------------------
 
-    elements.messageForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
+    if (elements.messageForm) {
+        elements.messageForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
 
-        const messageContent = elements.messageInput.value.trim();
+            const messageContent = elements.messageInput ? elements.messageInput.value.trim() : "";
+            if (!messageContent) return;
 
-        if (!messageContent) {
-            return;
-        }
+            const sendButton = document.getElementById("send-message-button");
+            if (sendButton) sendButton.disabled = true;
 
-        const sendButton = document.getElementById("send-message-button");
+            try {
+                const postUrl = `${API_BASE_URL}/api/messages`;
 
-        sendButton.disabled = true;
+                const response = await fetch(postUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        ticketId: activeTicketId,
+                        senderType: "admin",
+                        message: messageContent
+                    })
+                });
 
-        try {
-            const response = await fetch(messagesApiUrl, {
-                method: "POST",
+                if (!response.ok) {
+                    throw new Error("Message could not be sent.");
+                }
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                if (elements.messageInput) elements.messageInput.value = "";
+                await loadConversation();
 
-                body: JSON.stringify({
-                    content: messageContent
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error("Message could not be sent.");
+            } catch (error) {
+                console.error("Could not send message:", error);
+                showConversationNotice("Message not sent. The backend messaging API is not available yet.");
+            } finally {
+                if (sendButton) sendButton.disabled = false;
             }
-
-            elements.messageInput.value = "";
-
-            await loadConversation();
-
-        } catch (error) {
-            console.error("Could not send message:", error);
-
-            showConversationNotice(
-                "Message not sent. The backend messaging API is not available yet."
-            );
-
-        } finally {
-            sendButton.disabled = false;
-        }
-    });
+        });
+    }
 
     // --------------------------------
     // INITIALIZE PAGE

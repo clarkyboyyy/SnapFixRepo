@@ -8,33 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const countElement = document.getElementById("ticket-result-count");
     const sidebarCount = document.getElementById("incoming-ticket-count");
 
-    const sampleTickets = [
-        {
-            id: "SF-1024",
-            issue: "Road Damage",
-            description: "Damaged road surface reported.",
-            location: "BGC, Taguig",
-            status: "pending",
-            date: "October 24, 2026"
-        },
-        {
-            id: "SF-1025",
-            issue: "Broken Streetlight",
-            description: "Streetlight needs maintenance.",
-            location: "Makati City",
-            status: "ongoing",
-            department: "Street Lighting",
-            date: "October 24, 2026"
-        },
-        {
-            id: "SF-1026",
-            issue: "Garbage Collection",
-            description: "Garbage collection issue reported.",
-            location: "Pasig City",
-            status: "pending",
-            date: "October 25, 2026"
-        }
-    ];
 
     let allTickets = [];
 
@@ -135,15 +108,21 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderTickets() {
         const searchText = searchInput.value.trim().toLowerCase();
 
+        // FIX 1: Handle case sensitivity for "Pending" status
         const incomingTickets = allTickets.filter(function (ticket) {
-            return ticket.status === "pending";
+            return ticket.status && ticket.status.toLowerCase() === "pending";
         });
 
         const visibleTickets = incomingTickets.filter(function (ticket) {
+            // FIX 2: Safely read 'title' instead of 'issue'
+            const id = ticket.id ? ticket.id.toLowerCase() : "";
+            const title = ticket.title ? ticket.title.toLowerCase() : "";
+            const loc = ticket.location ? ticket.location.toLowerCase() : "";
+
             return (
-                ticket.id.toLowerCase().includes(searchText) ||
-                ticket.issue.toLowerCase().includes(searchText) ||
-                ticket.location.toLowerCase().includes(searchText)
+                id.includes(searchText) ||
+                title.includes(searchText) ||
+                loc.includes(searchText)
             );
         });
 
@@ -158,7 +137,8 @@ document.addEventListener("DOMContentLoaded", function () {
             const issueCell = document.createElement("td");
 
             const issueTitle = document.createElement("strong");
-            issueTitle.textContent = ticket.issue;
+            // Mapping to the correct property from C#
+            issueTitle.textContent = ticket.title; 
 
             const description = document.createElement("br");
             const descriptionText = document.createElement("small");
@@ -170,7 +150,9 @@ document.addEventListener("DOMContentLoaded", function () {
             locationCell.textContent = ticket.location;
 
             const dateCell = document.createElement("td");
-            dateCell.textContent = ticket.date;
+            // FIX 3: Map to 'dateSubmitted' and format it for the dashboard
+            const rawDate = ticket.dateSubmitted ? new Date(ticket.dateSubmitted) : new Date();
+            dateCell.textContent = rawDate.toLocaleDateString() + ' ' + rawDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
             const statusCell = document.createElement("td");
             const statusBadge = document.createElement("span");
@@ -222,31 +204,28 @@ document.addEventListener("DOMContentLoaded", function () {
         sidebarCount.textContent = incomingTickets.length;
     }
 
-    async function loadTickets() {
-        try {
-            const response = await fetch(apiUrl);
+    
 
-            if (!response.ok) {
-                throw new Error("API returned status " + response.status);
-            }
-
-            const data = await response.json();
-
-            allTickets = getTicketsWithSavedChanges(
-                Array.isArray(data) && data.length > 0
-                    ? data
-                    : sampleTickets
-            );
-
-        } catch (error) {
-            console.error("Could not load API tickets:", error);
-
-            allTickets = getTicketsWithSavedChanges(sampleTickets);
-        }
-
-        renderTickets();
+async function loadTickets() {
+  try {
+    const response = await fetch('http://localhost:5141/api/tickets');
+    
+    if (!response.ok) {
+      throw new Error(`API returned status ${response.status}`);
     }
-
+    
+    const tickets = await response.json();
+    
+    // THE MISSING LINK: Save the downloaded data to your global list!
+    allTickets = tickets; 
+    
+    // Now render the table (it will use the newly populated allTickets array)
+    renderTickets(); 
+    
+  } catch (error) {
+    console.error("Could not load API tickets:", error);
+  }
+}
     searchInput.addEventListener("input", renderTickets);
 
     window.addEventListener("pageshow", loadTickets);
