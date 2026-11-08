@@ -103,6 +103,7 @@ class IssueCategory {
     IssueCategory('Waterways & Drainage', Icons.water_drop_outlined),
     IssueCategory('Public Safety', Icons.local_police_outlined),
     IssueCategory('Parks & Greenery', Icons.park_outlined),
+    IssueCategory('Others', Icons.more_horiz),
   ];
 
   static IssueCategory byLabel(String label) =>

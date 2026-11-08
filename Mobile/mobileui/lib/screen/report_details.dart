@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../models/report.dart';
+import '../models/issuecategory.dart';
 import '../theme/app_theme.dart';
 import '../widget/page_header.dart';
 import '../widget/report_card.dart';

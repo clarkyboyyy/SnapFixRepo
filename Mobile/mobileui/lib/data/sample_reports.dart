@@ -1,4 +1,4 @@
-import '../models/report.dart';
+import '../models/issuecategory.dart';
 
 /// Seed data so the UI has something to render before a backend exists.
 List<IssueReport> createSampleReports() => [

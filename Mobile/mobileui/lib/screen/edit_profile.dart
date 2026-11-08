@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/local_account_store.dart';
+import '../data/profile_service.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
 
@@ -23,6 +24,7 @@ class ProfileEditPage extends StatefulWidget {
 class _ProfileEditPageState extends State<ProfileEditPage> {
   final _form = GlobalKey<FormState>();
   final _store = LocalAccountStore();
+  final _service = ProfileService();
   late final _name = TextEditingController(text: widget.account.name);
   late final _mobile = TextEditingController(text: widget.account.mobile);
   late final _address = TextEditingController(text: widget.account.address);
@@ -31,6 +33,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
 
   @override
   void dispose() {
+    _service.dispose();
     _name.dispose();
     _mobile.dispose();
     _address.dispose();
@@ -44,17 +47,36 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
       _error = null;
     });
 
-    final updated = await _store.updateProfile(
+    final result = await _service.updateProfile(
+      email: widget.account.email,
       name: _name.text,
-      mobile: _mobile.text,
+      phone: _mobile.text,
       address: _address.text,
+    );
+
+    if (!mounted) return;
+    if (!result.isSuccess) {
+      setState(() {
+        _busy = false;
+        _error = result.error ?? 'Could not save these changes. Try again.';
+      });
+      return;
+    }
+
+    final profile = result.profile!;
+    final updated = await _store.cacheProfileDetails(
+      email: widget.account.email,
+      name: profile.fullName,
+      mobile: profile.phone,
+      address: profile.address,
+      keepBlank: false,
     );
 
     if (!mounted) return;
     if (updated == null) {
       setState(() {
         _busy = false;
-        _error = 'Could not save these changes on this device. Try again.';
+        _error = 'Profile updated, but this device could not store it.';
       });
       return;
     }
@@ -94,7 +116,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               controller: _mobile,
               hint: 'e.g. 0917 123 4567',
               keyboardType: TextInputType.phone,
-              validator: _validateMobile,
+              validator: validateMobile,
             ),
             AuthField(
               label: 'Address (optional)',
@@ -122,8 +144,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
             const SizedBox(height: 14),
             const Center(
               child: Text(
-                'Saved on this device only. Leave a field blank to keep the '
-                'value already stored.',
+                'Saved to your account. Leave a field blank to clear it.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
               ),
@@ -132,15 +153,6 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         ),
       ),
     );
-  }
-
-  static String? _validateMobile(String? value) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return null;
-    if (!RegExp(r'^[0-9+()\s-]{7,20}$').hasMatch(text)) {
-      return 'Use digits, spaces, + or dashes';
-    }
-    return null;
   }
 }
 

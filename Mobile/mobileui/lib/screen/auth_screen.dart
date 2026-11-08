@@ -38,12 +38,6 @@ class AuthScreen extends StatelessWidget {
                   style: TextStyle(color: AppTheme.muted, height: 1.45),
                 ),
               ),
-              const SizedBox(height: 30),
-              OutlinedButton.icon(
-                onPressed: () => _showGoogleNotice(context),
-                icon: const Icon(Icons.mail_outline, size: 19),
-                label: const Text('Continue with Google'),
-              ),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: () =>
@@ -207,5 +201,14 @@ String? validateEmail(String? value) {
 
 String? validatePassword(String? value) {
   if (value == null || value.length < 6) return 'Use at least 6 characters';
+  return null;
+}
+
+String? validateMobile(String? value) {
+  final text = value?.trim() ?? '';
+  if (text.isEmpty) return null;
+  if (!RegExp(r'^[0-9+()\s-]{7,20}$').hasMatch(text)) {
+    return 'Use digits, spaces, + or dashes';
+  }
   return null;
 }

@@ -1,10 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+
+import '../apiconfig.dart';
+import '../data/api_message.dart';
+import '../data/local_account_store.dart';
+import '../data/user_profile.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
 
-/// Returning resident: email and password checked against the saved account.
+/// Returning resident: email and password checked against the backend.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.onSignedIn});
 
@@ -13,7 +20,6 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
-
 
 class _LoginPageState extends State<LoginPage> {
   final _form = GlobalKey<FormState>();
@@ -31,45 +37,80 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _submit() async {
-    if (!_form.currentState!.validate()) return;
+    if (_busy || !_form.currentState!.validate()) return;
 
     setState(() {
-      _busy = true; // <-- Starts the spinner
+      _busy = true;
       _error = null;
     });
 
     try {
-      var url = Uri.parse('http://localhost:5141/api/auth/login');
-      var response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": _email.text.trim(),
-          "password": _password.text,
-        }),
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': _email.text.trim(),
+              'password': _password.text,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _busy = false;
+          _error = apiMessage(
+            response,
+            fallback: response.statusCode == 401
+                ? 'Invalid email or password.'
+                : 'Login failed. Try again.',
+          );
+        });
+        return;
+      }
+
+      // The login response carries the stored profile, so the session and the
+      // profile it will display are saved together.
+      final profile = UserProfile.tryParse(response.body);
+      final account = await LocalAccountStore().saveConfirmedProfile(
+        name: profile?.fullName ?? '',
+        email: profile?.email ?? _email.text,
+        password: _password.text,
+        mobile: profile?.phone ?? '',
+        address: profile?.address ?? '',
       );
 
       if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        // 1. Trigger the sign-in status
-        widget.onSignedIn(_email.text.trim(), null);
-
-        // 2. STOP THE SPINNER AND NAVIGATE AWAY (This was missing!)
-        setState(() => _busy = false);
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      } else {
-        // Handle Invalid password or email
+      if (account == null) {
         setState(() {
-          _busy = false; // Stops spinner on error
-          _error = "Invalid email or password.";
+          _busy = false;
+          _error = 'Signed in, but this device could not store the session.';
         });
+        return;
       }
-    } catch (e) {
+
+      widget.onSignedIn(account.email, account.name);
+      setState(() => _busy = false);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on TimeoutException {
       if (!mounted) return;
       setState(() {
-        _busy = false; // Stops spinner on connection error
-        _error = "Cannot connect to server.";
+        _busy = false;
+        _error = 'The server took too long to respond. Try again.';
+      });
+    } on http.ClientException {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = 'Cannot connect to server. Is the C# backend running?';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = 'Login failed. Try again.';
       });
     }
   }

@@ -1,10 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobileui/data/local_account_store.dart';
 import 'package:mobileui/data/sample_reports.dart';
+import 'package:mobileui/data/user_profile.dart';
 import 'package:mobileui/main.dart';
-import 'package:mobileui/models/report.dart';
+import 'package:mobileui/models/issuecategory.dart';
 import 'package:mobileui/screen/auth_screen.dart';
 import 'package:mobileui/screen/edit_profile.dart';
 import 'package:mobileui/screen/home.dart';
@@ -301,6 +304,82 @@ void main() {
     expect(find.text('0917 555 0134'), findsOneWidget);
     expect(find.text('7 Mabini Street'), findsOneWidget);
     expect(find.text('Add it in Edit profile'), findsNothing);
+  });
+
+  testWidgets('profile shows loading and then the fetched details', (
+    tester,
+  ) async {
+    _usePhone(tester);
+    final loaded = Completer<ProfileResult>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: ProfilePage(
+            account: _account(),
+            onAuth: () {},
+            onEdit: () {},
+            onLogout: () {},
+            loadProfile: (_) => loaded.future,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Refreshing your account details…'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    loaded.complete(
+      const ProfileResult.success(
+        UserProfile(
+          id: 7,
+          fullName: 'Zyra M. Malik',
+          email: 'zyra.malik@example.com',
+          phone: '0917 555 0134',
+          address: '7 Mabini Street',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zyra M. Malik'), findsWidgets);
+    expect(find.text('0917 555 0134'), findsOneWidget);
+    expect(find.text('7 Mabini Street'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
+  testWidgets('profile falls back to placeholders when refresh fails', (
+    tester,
+  ) async {
+    _usePhone(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: ProfilePage(
+            account: const LocalAccount(
+              name: 'Zyra Malik',
+              email: 'zyra.malik@example.com',
+              salt: 'c2FsdA==',
+              passwordHash: 'aGFzaA==',
+            ),
+            onAuth: () {},
+            onEdit: () {},
+            onLogout: () {},
+            loadProfile: (_) async =>
+                const ProfileResult.failure('Server offline'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Server offline'), findsOneWidget);
+    expect(find.text('Zyra Malik'), findsWidgets);
+    expect(find.text('Add it in Edit profile'), findsNWidgets(2));
   });
 
   testWidgets('every screen renders on a small and large phone', (

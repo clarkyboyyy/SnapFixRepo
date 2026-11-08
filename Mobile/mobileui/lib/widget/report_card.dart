@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import '../models/report.dart';
+import '../models/issuecategory.dart';
 
 /// Summary row for a report, used on Home and in the My Reports list.
 class ReportCard extends StatefulWidget {

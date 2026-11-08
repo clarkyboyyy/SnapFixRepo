@@ -1,28 +1,34 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-
-import '../theme/app_theme.dart';
-import 'auth_screen.dart';
-
 import 'package:http/http.dart' as http;
 
-import 'dart:convert';
+import '../apiconfig.dart';
+import '../data/api_message.dart';
+import '../data/local_account_store.dart';
+import '../data/user_profile.dart';
+import '../theme/app_theme.dart';
+import 'auth_screen.dart';
 
 // 1. Email Validator
 String? validateEmail(String? value) {
   if (value == null || value.trim().isEmpty) {
     return 'Email is required';
   }
-  
+
   String trimmedValue = value.trim();
-  
+
   // This regular expression strictly allows only Gmail addresses (@gmail.com)
-  bool isGmail = RegExp(r"^[a-zA-Z0-9._%+-]+@gmail\.com$", caseSensitive: false).hasMatch(trimmedValue);
-  
+  bool isGmail = RegExp(
+    r"^[a-zA-Z0-9._%+-]+@gmail\.com$",
+    caseSensitive: false,
+  ).hasMatch(trimmedValue);
+
   if (!isGmail) {
     return 'Invalid Email. Only Gmail addresses are allowed.';
   }
-  
+
   return null; // Valid!
 }
 
@@ -31,15 +37,17 @@ String? validatePassword(String? value) {
   if (value == null || value.isEmpty) {
     return 'Password is required';
   }
-  
-  bool isValidFormat = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$').hasMatch(value);
-  
+
+  bool isValidFormat = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$')
+      .hasMatch(value);
+
   if (!isValidFormat) {
     return 'Must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number';
   }
-  
+
   return null; // Valid!
 }
+
 /// New resident: name, email and a confirmed password.
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key, required this.onSignedIn});
@@ -54,6 +62,7 @@ class _SignupPageState extends State<SignupPage> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _showPassword = false;
@@ -64,6 +73,7 @@ class _SignupPageState extends State<SignupPage> {
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _phone.dispose();
     _password.dispose();
     _confirm.dispose();
     super.dispose();
@@ -77,42 +87,78 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      // 1. Point to your local C# Backend API
-      var url = Uri.parse('http://localhost:5141/api/auth/register');
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/api/auth/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'fullName': _name.text.trim(),
+              'email': _email.text.trim(),
+              'password': _password.text,
+              'phone': _phone.text.trim(),
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
-      // 2. Send the registration data to C#
-      var response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "email": _email.text.trim(),
-          "password": _password.text,
-          "fullName": _name.text.trim(),
-        }),
+      if (!mounted) return;
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        setState(() {
+          _busy = false;
+          _error = apiMessage(
+            response,
+            fallback: 'Registration failed (HTTP ${response.statusCode}).',
+          );
+        });
+        return;
+      }
+
+      // Keep the details the backend confirmed so the profile is populated
+      // before the screen is opened, even when the network drops afterwards.
+      final profile = UserProfile.tryParse(response.body);
+      final account = await LocalAccountStore().saveConfirmedProfile(
+        name: _prefer(profile?.fullName, _name.text),
+        email: _prefer(profile?.email, _email.text),
+        password: _password.text,
+        mobile: _prefer(profile?.phone, _phone.text),
       );
 
       if (!mounted) return;
-
-      // 3. Handle Success (Status 200 OK or 201 Created)
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        widget.onSignedIn(_email.text.trim(), _name.text.trim());
-        setState(() => _busy = false);
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      } else {
-        // 4. Handle backend rejection (e.g., email already exists)
+      if (account == null) {
         setState(() {
           _busy = false;
-          _error = "Registration failed: ${response.body}";
+          _error = 'Account created, but it could not be saved on this device.';
         });
+        return;
       }
-    } catch (e) {
-      // 5. Handle Network/Connection Errors
+
+      widget.onSignedIn(account.email, account.name);
+      setState(() => _busy = false);
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } on TimeoutException {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = "Cannot connect to server. Is the C# backend running?";
+        _error = 'The server took too long to respond. Try again.';
+      });
+    } on http.ClientException {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = 'Cannot connect to server. Is the C# backend running?';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = 'Registration failed. Try again.';
       });
     }
+  }
+
+  static String _prefer(String? fromServer, String typed) {
+    final value = fromServer?.trim() ?? '';
+    return value.isEmpty ? typed.trim() : value;
   }
 
   @override
@@ -145,6 +191,13 @@ class _SignupPageState extends State<SignupPage> {
               hint: 'name@example.com',
               keyboardType: TextInputType.emailAddress,
               validator: validateEmail,
+            ),
+            AuthField(
+              label: 'Mobile Number (optional)',
+              controller: _phone,
+              hint: 'e.g. 0917 123 4567',
+              keyboardType: TextInputType.phone,
+              validator: validateMobile,
             ),
             AuthField(
               label: 'Password',

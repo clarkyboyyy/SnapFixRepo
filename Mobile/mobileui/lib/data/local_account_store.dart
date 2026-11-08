@@ -5,11 +5,11 @@ import 'package:crypto/crypto.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The resident's account, saved on this device only.
+/// The resident's account, cached on this device.
 ///
-/// This is a local-storage demo with no backend: the credential never leaves
-/// the phone, nothing is verified against a real service, and anyone with read
-/// access to the app's storage can attempt an offline guess against
+/// The backend is the source of truth once it is reachable; this cache keeps
+/// the profile readable offline. It is not a secure credential store: anyone
+/// with read access to the app's storage can attempt an offline guess against
 /// [LocalAccount.passwordHash]. A production build must move authentication to
 /// a server using a slow, per-user hash (argon2id or bcrypt) plus session
 /// tokens.
@@ -236,6 +236,94 @@ class LocalAccountStore {
 
     await prefs.setString(_sessionKey, normalizeEmail(account.email));
     return AuthOutcome.signedIn(account);
+  }
+
+  /// Saves the profile the backend just confirmed and opens a session for it.
+  ///
+  /// Keeps the stored credential digest when this email is already on the
+  /// device; a new account hashes [password] so local sign-in still works.
+  Future<LocalAccount?> saveConfirmedProfile({
+    required String name,
+    required String email,
+    String password = '',
+    String mobile = '',
+    String address = '',
+  }) async {
+    final prefs = await _open();
+    if (prefs == null) return null;
+
+    final cleanEmail = normalizeEmail(email);
+    if (cleanEmail.isEmpty) return null;
+
+    final existing = await readAccount();
+    final current =
+        existing != null && normalizeEmail(existing.email) == cleanEmail
+        ? existing
+        : null;
+
+    final salt = current?.salt ?? _newSalt();
+    final passwordHash =
+        current?.passwordHash ??
+        (password.isEmpty ? null : digest(password, salt));
+    if (passwordHash == null) return null;
+
+    final cleanName = name.trim();
+    final cleanMobile = mobile.trim();
+    final cleanAddress = address.trim();
+    final account = LocalAccount(
+      name: cleanName.isEmpty ? (current?.name ?? cleanEmail) : cleanName,
+      email: cleanEmail,
+      salt: salt,
+      passwordHash: passwordHash,
+      mobile: cleanMobile.isEmpty ? (current?.mobile ?? '') : cleanMobile,
+      address: cleanAddress.isEmpty ? (current?.address ?? '') : cleanAddress,
+    );
+
+    if (!await _write(prefs, account)) return null;
+    await prefs.setString(_sessionKey, cleanEmail);
+    return account;
+  }
+
+  /// Refreshes the cached profile fields from the backend without touching
+  /// the stored credential. Returns null when this device has no matching
+  /// account to update.
+  ///
+  /// With [keepBlank] left on, an empty value from the backend keeps what is
+  /// already stored. Pass false after an explicit edit so cleared fields are
+  /// cleared locally too.
+  Future<LocalAccount?> cacheProfileDetails({
+    required String email,
+    required String name,
+    String mobile = '',
+    String address = '',
+    bool keepBlank = true,
+  }) async {
+    final prefs = await _open();
+    if (prefs == null) return null;
+
+    final account = await readAccount();
+    if (account == null ||
+        normalizeEmail(account.email) != normalizeEmail(email)) {
+      return null;
+    }
+
+    String? field(String value) {
+      final clean = value.trim();
+      if (clean.isNotEmpty) return clean;
+      return keepBlank ? null : '';
+    }
+
+    final updated = account.copyWith(
+      name: name.trim().isEmpty ? null : name.trim(),
+      mobile: field(mobile),
+      address: field(address),
+    );
+    if (!await _write(prefs, updated)) return null;
+
+    if (prefs.getString(_sessionKey) == normalizeEmail(account.email)) {
+      await prefs.setString(_sessionKey, normalizeEmail(updated.email));
+    }
+    return updated;
   }
 
   /// Updates the saved profile. Blank input keeps the stored value.

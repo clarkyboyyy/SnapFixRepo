@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/local_account_store.dart';
 import 'data/sample_reports.dart';
-import 'models/report.dart';
+import 'models/issuecategory.dart';
 import 'screen/auth_screen.dart';
 import 'screen/edit_profile.dart';
 import 'screen/home.dart';
@@ -160,6 +160,7 @@ class _SnapFixShellState extends State<SnapFixShell> {
         onAuth: _openAuth,
         onEdit: _editProfile,
         onLogout: _signOut,
+        onProfileLoaded: (updated) => setState(() => _account = updated),
       ),
     ];
 
@@ -205,22 +206,22 @@ class _SnapFixShellState extends State<SnapFixShell> {
   }
 
   void _addReport(IssueReport draft) {
-  setState(() {
-    _reports.insert(0, draft);
-    _tab = 1;
-  });
-  
-  _open(
-    SubmittedReportPage(
-      reportId: draft.id,
-      onViewReports: () => Navigator.pop(context),
-      onBackToHome: () {
-        setState(() => _tab = 0);
-        Navigator.pop(context);
-      },
-    ),
-  );
-}
+    setState(() {
+      _reports.insert(0, draft);
+      _tab = 1;
+    });
+
+    _open(
+      SubmittedReportPage(
+        reportId: draft.id,
+        onViewReports: () => Navigator.pop(context),
+        onBackToHome: () {
+          setState(() => _tab = 0);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
 
   void _openAuth() =>
       _open(AuthScreen(onSignedIn: (email, name) => _onSignedIn(email, name)));

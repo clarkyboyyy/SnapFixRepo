@@ -13,5 +13,14 @@ namespace AppBackend.Model
 
         [Column("password")]
         public string Password { get; set; } = string.Empty;
+
+        [Column("full_name")]
+        public string? FullName { get; set; }
+
+        [Column("phone")]
+        public string? Phone { get; set; }
+
+        [Column("address")]
+        public string? Address { get; set; }
     }
 }
