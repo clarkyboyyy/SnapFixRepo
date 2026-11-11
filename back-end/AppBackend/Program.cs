@@ -1,37 +1,44 @@
-using AppBackend.Data; // Make sure you have this to find AppDbContext
-using Microsoft.EntityFrameworkCore; // Make sure you have this to use SQL Server
+
+using AppBackend.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. ADDED THIS BLOCK: Connects C# to your SQL Server database
+// Database connection
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    )
+);
 
+// CORS configuration for Flutter Web on localhost
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowLiveServer", policy =>
+    options.AddPolicy("AllowFlutterWeb", policy =>
     {
-        policy.WithOrigins("http://127.0.0.1:5500", "http://localhost:5141")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                return false;
+
+            return uri.Scheme == "http" &&
+                   (uri.Host == "localhost" ||
+                    uri.Host == "127.0.0.1");
+        })
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
 
-var options = new Supabase.SupabaseOptions
-{
-    AutoConnectRealtime = true
-};
-
-var supabase = new Supabase.Client("https://oymklmxvcftvrinjqryx.supabase.co", "sb_publishable_Dq3xrZuH4APjvmU5EjxEow_JXpo16sa", options);
-builder.Services.AddSingleton(supabase);
-
 builder.Services.AddControllers();
-
 builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
-app.UseCors("AllowLiveServer"); 
+app.UseCors("AllowFlutterWeb");
 
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();

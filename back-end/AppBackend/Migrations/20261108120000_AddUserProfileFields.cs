@@ -10,39 +10,16 @@ namespace AppBackend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "address",
-                table: "Users",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "full_name",
-                table: "Users",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "phone",
-                table: "Users",
-                type: "text",
-                nullable: true);
+            // The Users table already contains:
+            // address, full_name, and phone.
+            // Nothing needs to be added here.
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "address",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "full_name",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "phone",
-                table: "Users");
+            // These columns already existed before this migration,
+            // so they must not be removed if this migration is rolled back.
         }
     }
 }
