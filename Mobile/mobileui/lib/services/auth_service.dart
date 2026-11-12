@@ -36,11 +36,11 @@ class AuthService {
         _profileFrom(response) ??
         UserProfile(email: email.trim(), fullName: name.trim(), phone: phone);
 
-    await _accounts.saveSignedIn(
+    await _accounts.saveConfirmedProfile(
       name: profile.displayName,
       email: profile.email,
+      password: password,
       mobile: profile.phone ?? '',
-      token: _tokenFrom(response),
     );
 
     return profile;
@@ -57,11 +57,11 @@ class AuthService {
 
     final profile = _profileFrom(response) ?? UserProfile(email: email.trim());
 
-    await _accounts.saveSignedIn(
+    await _accounts.saveConfirmedProfile(
       name: profile.displayName,
       email: profile.email,
+      password: password,
       mobile: profile.phone ?? '',
-      token: _tokenFrom(response),
     );
 
     return profile;
@@ -108,9 +108,4 @@ class AuthService {
   UserProfile? _profileFrom(Map<String, dynamic> response) =>
       UserProfile.tryParse(response['profile']) ??
       UserProfile.tryParse(response);
-
-  String? _tokenFrom(Map<String, dynamic> response) {
-    final token = response['token'];
-    return token is String && token.isNotEmpty ? token : null;
-  }
 }

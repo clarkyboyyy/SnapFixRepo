@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../models/report.dart';
+import '../models/issuecategory.dart';
 import '../theme/app_theme.dart';
 
 /// Renders a report's photo wherever the app shows one: from the uploaded URL

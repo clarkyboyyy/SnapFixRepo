@@ -11,6 +11,7 @@ class IssueReport {
     required this.status,
     required this.createdAt,
     this.photoPath,
+    this.photoUrl,
     this.progress = 0,
     List<InquiryMessage>? messages,
   }) : messages = messages ?? [];
@@ -25,6 +26,9 @@ class IssueReport {
 
   /// Local file path of the attached photo, if the reporter added one.
   final String? photoPath;
+
+  /// URL of the photo once the backend has stored it.
+  final String? photoUrl;
 
   /// Completion of the barangay's work on this report, 0–100.
   final int progress;
@@ -53,6 +57,7 @@ class IssueReport {
       status: status ?? this.status,
       createdAt: createdAt,
       photoPath: photoPath,
+      photoUrl: photoUrl,
       progress: progress ?? this.progress,
       messages: messages,
     );

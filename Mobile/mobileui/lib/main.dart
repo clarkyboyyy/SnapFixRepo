@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
       home: SignupPage(
         onSignedIn: (String email, String? name) {
           // You can add logic here later for what happens after they sign up
-          print('Signed up with: $email');
+          debugPrint('Signed up with: $email');
         },
       ),
     );
@@ -140,7 +140,6 @@ bool _isLoadingReports = true;
 
   final LocalAccountStore _store = LocalAccountStore();
   int _tab = 0;
-  int _serial = 14;
   late LocalAccount? _account = widget.initialAccount;
 
 
@@ -164,6 +163,8 @@ bool _isLoadingReports = true;
           rawDate?.toString() ?? '',
         ) ?? DateTime.now();
 
+        final rawPhoto = ticket['photoUrl'] ?? ticket['photo_url'];
+
         var status = (ticket['status'] ?? 'Submitted').toString();
 
         if (status.toLowerCase() == 'pending') {
@@ -178,6 +179,7 @@ bool _isLoadingReports = true;
           location: (ticket['location'] ?? '').toString(),
           status: status,
           createdAt: createdAt,
+          photoUrl: rawPhoto?.toString(),
         );
       }).toList();
 

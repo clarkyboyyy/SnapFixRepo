@@ -68,15 +68,6 @@ class AuthScreen extends StatelessWidget {
 
   void _open(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-
-  void _showGoogleNotice(BuildContext context) => ScaffoldMessenger.of(context)
-      .showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Google sign-in is a visual demo; no authentication is performed.',
-          ),
-        ),
-      );
 }
 
 /// Shared heading used by the login and sign-up forms.
