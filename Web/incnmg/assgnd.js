@@ -211,3 +211,4 @@ document.addEventListener("DOMContentLoaded", function () {
     // Admin edits in another tab or the review page show up without a reload.
     setInterval(loadTickets, 10000);
 });
+    

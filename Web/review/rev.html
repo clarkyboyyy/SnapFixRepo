@@ -6,6 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Review Ticket | SnapFix Admin</title>
     <link rel="stylesheet" href="rev.css">
+
+    <style>
+        .ticket-photo {
+            display: block;
+            width: 100%;
+            max-width: 420px;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .photo-placeholder[hidden],
+        .ticket-photo[hidden] {
+            display: none !important;
+        }
+
+        .photo-placeholder {
+            min-height: 100px;
+        }
+    </style>
 </head>
 <body>
     <div class="admin-layout">
@@ -104,12 +125,22 @@
                         </p>
                     </div>
 
+                    <!-- ATTACHED PHOTO -->
                     <div class="detail-item">
                         <span class="detail-label">Attached Photo</span>
-                        <div class="photo-placeholder">
+
+                        <div class="photo-placeholder" id="photo-placeholder">
                             <span class="photo-icon">▧</span>
-                            <p>No photo attached</p>
+                            <p id="photo-message">Loading photo...</p>
                         </div>
+
+                        <img
+                            id="ticket-photo"
+                            class="ticket-photo"
+                            src=""
+                            alt="Photo attached to the citizen's report"
+                            hidden
+                        >
                     </div>
                 </section>
 
@@ -153,7 +184,8 @@
                             <textarea
                                 id="admin-notes"
                                 rows="4"
-                                placeholder="Add internal notes or instructions..."></textarea>
+                                placeholder="Add internal notes or instructions..."
+                            ></textarea>
                         </div>
 
                         <div class="form-group">
@@ -165,7 +197,8 @@
                                 min="0"
                                 max="100"
                                 step="5"
-                                value="0">
+                                value="0"
+                            >
                         </div>
 
                         <div class="form-group">
@@ -174,7 +207,8 @@
                             <textarea
                                 id="progress-note"
                                 rows="2"
-                                placeholder="Describe this update for the resident's tracking history..."></textarea>
+                                placeholder="Describe this update for the resident's tracking history..."
+                            ></textarea>
                         </div>
 
                         <div class="assigned-info">
@@ -193,7 +227,6 @@
                         </button>
                     </form>
                 </section>
-
             </div>
 
             <!-- CONVERSATION -->
