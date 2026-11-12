@@ -22,13 +22,17 @@ import 'screen/signup.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LocalAccountStore.defaultPrefs = await SharedPreferences.getInstance();
-  runApp(
-    SnapFixApp(initialAccount: await LocalAccountStore().signedInAccount()),
-  );
 
   await Supabase.initialize(
     url: 'https://oymklmxvcftvrinjqryx.supabase.co/rest/v1/',
     publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtsbXh2Y2Z0dnJpbmpxcnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjQ2NTMsImV4cCI6MjEwODY0MDY1M30.-5CEbJ1k8bRiWzEQCfGb8ANzTfwF3SccbbQZNau3kBc',
+  );
+  // 2. Forcefully clear the saved account from the device's memory
+  await LocalAccountStore().signOut();
+
+  // 3. Start the app with no initial account, forcing it to the Welcome screen
+  runApp(
+    const SnapFixApp(initialAccount: null),
   );
 }
 
@@ -78,12 +82,9 @@ class AppEntry extends StatefulWidget {
 enum _Stage { welcome, onboarding, app, auth }
 
 class _AppEntryState extends State<AppEntry> {
-  late _Stage _stage = widget.initialAccount == null
-      ? _Stage.welcome
-      : _Stage.app;
+  // 1. Force the app to ALWAYS start at the welcome screen
+  late _Stage _stage = _Stage.welcome;
 
-  /// `initialAccount` is only what an earlier launch left behind, so the
-  /// resident registered in this session has to be carried to the shell here.
   late LocalAccount? _account = widget.initialAccount;
 
   void _advance(_Stage stage) {
@@ -101,17 +102,26 @@ class _AppEntryState extends State<AppEntry> {
 
   @override
   Widget build(BuildContext context) {
+    // 2. Helper function to decide where to go after Welcome/Onboarding
+    void proceedAfterIntro() {
+      if (_account != null) {
+        _advance(_Stage.app); // Already logged in, go to dashboard
+      } else {
+        _advance(_Stage.auth); // Not logged in, go to auth
+      }
+    }
+
     switch (_stage) {
       case _Stage.welcome:
         return WelcomeScreen(
           onGetStarted: () => _advance(_Stage.onboarding),
-          onSkip: () => _advance(_Stage.app),
+          onSkip: proceedAfterIntro, // Use the helper function here
         );
 
       case _Stage.onboarding:
         return OnboardingScreen(
-          onFinished: () => _advance(_Stage.auth),
-          onSkip: () => _advance(_Stage.app),
+          onFinished: proceedAfterIntro, // Use the helper function here
+          onSkip: proceedAfterIntro, // Use the helper function here
         );
 
       case _Stage.auth:
