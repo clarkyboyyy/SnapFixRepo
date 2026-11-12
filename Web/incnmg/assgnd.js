@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     const storageKey = "snapfixTickets";
     const apiUrl = "http://localhost:5141/api/tickets";
@@ -6,31 +5,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const tbody = document.getElementById("assigned-ticket-body");
     const countElement = document.getElementById("assigned-ticket-count");
     const incomingCount = document.getElementById("incoming-ticket-count");
-
-    const sampleTickets = [
-        {
-            id: "SF-1024",
-            issue: "Road Damage",
-            location: "BGC, Taguig",
-            status: "pending",
-            date: "October 24, 2026"
-        },
-        {
-            id: "SF-1025",
-            issue: "Broken Streetlight",
-            location: "Makati City",
-            status: "ongoing",
-            department: "Street Lighting",
-            date: "October 24, 2026"
-        },
-        {
-            id: "SF-1026",
-            issue: "Garbage Collection",
-            location: "Pasig City",
-            status: "pending",
-            date: "October 25, 2026"
-        }
-    ];
 
     let allTickets = [];
 
@@ -43,19 +17,40 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function normalizeStatus(status) {
-        const value = String(status || "pending")
+    // The API, the dashboard, and the Flutter app all use these three values.
+    function normalizeStatus(value) {
+        const status = String(value || "")
+            .trim()
             .toLowerCase()
-            .replace(/\s+/g, "-");
+            .replace(/[_-]/g, " ")
+            .replace(/\s+/g, " ");
 
         if (
-            value === "assigned" ||
-            value === "in-progress"
+            status === "ongoing" ||
+            status === "in progress" ||
+            status === "inprogress" ||
+            status === "assigned" ||
+            status === "working"
         ) {
-            return "ongoing";
+            return "In Progress";
         }
 
-        return value === "ongoing" ? "ongoing" : "pending";
+        if (
+            status === "resolved" ||
+            status === "closed" ||
+            status === "completed" ||
+            status === "done"
+        ) {
+            return "Resolved";
+        }
+
+        return "Submitted";
+    }
+
+    function badgeClass(status) {
+        if (status === "In Progress") return "in-progress";
+        if (status === "Resolved") return "resolved";
+        return "pending";
     }
 
     function normalizeTicket(ticket, fallbackId = "") {
@@ -68,16 +63,15 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         const rawDate =
-            ticket.date ||
             ticket.dateSubmitted ||
             ticket.DateSubmitted ||
+            ticket.date ||
             ticket.date_submitted;
 
         let date = "Date unavailable";
 
         if (rawDate) {
             const parsedDate = new Date(rawDate);
-
             date = isNaN(parsedDate.getTime())
                 ? rawDate
                 : parsedDate.toLocaleDateString("en-US", {
@@ -87,54 +81,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         }
 
+        const progressValue = Number(ticket.progress);
+
         return {
             ...ticket,
             id,
-            issue: ticket.issue || ticket.title || ticket.Title || "No Title",
+            title: ticket.title || ticket.Title || ticket.issue || "No Title",
             description: ticket.description || ticket.Description || "",
             location: ticket.location || ticket.Location || "Unknown",
             status: normalizeStatus(ticket.status || ticket.Status),
             date,
-            department: ticket.department || ticket.Department || ""
+            department:
+                ticket.assignedDepartment ||
+                ticket.assigned_department ||
+                ticket.department ||
+                "",
+            progress: Number.isFinite(progressValue) ? progressValue : 0
         };
-    }
-
-    function getTicketsWithSavedChanges(sourceTickets) {
-        const savedTickets = getSavedTickets();
-        const ticketMap = new Map();
-
-        sourceTickets.forEach(function (sourceTicket) {
-            const ticket = normalizeTicket(sourceTicket);
-
-            if (ticket.id) {
-                ticketMap.set(ticket.id, ticket);
-            }
-        });
-
-        Object.entries(savedTickets).forEach(function ([savedId, savedTicket]) {
-            const ticket = normalizeTicket(savedTicket, savedId);
-            const existingTicket = ticketMap.get(ticket.id) || {};
-
-            ticketMap.set(ticket.id, {
-                ...existingTicket,
-                ...ticket,
-                id: ticket.id,
-                status: normalizeStatus(savedTicket.status || ticket.status)
-            });
-        });
-
-        return Array.from(ticketMap.values());
     }
 
     function renderTickets() {
         const assignedTickets = allTickets.filter(function (ticket) {
-            return ticket.status === "ongoing" &&
+            return ticket.status === "In Progress" &&
                 typeof ticket.department === "string" &&
                 ticket.department.trim() !== "";
         });
 
         const pendingCount = allTickets.filter(function (ticket) {
-            return ticket.status === "pending";
+            return ticket.status === "Submitted";
         }).length;
 
         incomingCount.textContent = pendingCount;
@@ -148,14 +122,13 @@ document.addEventListener("DOMContentLoaded", function () {
             idCell.textContent = "#" + ticket.id;
 
             const issueCell = document.createElement("td");
-            issueCell.textContent =
-                ticket.issue + " — " + ticket.location;
+            issueCell.textContent = ticket.title + " — " + ticket.location;
 
             const statusCell = document.createElement("td");
             const statusBadge = document.createElement("span");
 
-            statusBadge.className = "status-badge ongoing";
-            statusBadge.textContent = "Ongoing";
+            statusBadge.className = `status-badge ${badgeClass(ticket.status)}`;
+            statusBadge.textContent = `${ticket.status} • ${ticket.progress}%`;
 
             statusCell.appendChild(statusBadge);
 
@@ -216,17 +189,16 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             const data = await response.json();
-
-            allTickets = getTicketsWithSavedChanges(
-                Array.isArray(data) && data.length > 0
-                    ? data
-                    : sampleTickets
+            allTickets = (Array.isArray(data) ? data : []).map(
+                (ticket) => normalizeTicket(ticket)
             );
-
         } catch (error) {
             console.error("Could not load API tickets:", error);
 
-            allTickets = getTicketsWithSavedChanges(sampleTickets);
+            const cached = getSavedTickets();
+            allTickets = Object.entries(cached).map(([id, ticket]) =>
+                normalizeTicket(ticket, id)
+            );
         }
 
         renderTickets();
@@ -236,9 +208,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     window.addEventListener("pageshow", loadTickets);
 
-    window.addEventListener("storage", function (event) {
-        if (event.key === storageKey) {
-            loadTickets();
-        }
-    });
+    // Admin edits in another tab or the review page show up without a reload.
+    setInterval(loadTickets, 10000);
 });

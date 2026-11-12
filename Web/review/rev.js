@@ -10,16 +10,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const storageKey = "snapfixTickets";
     const API_BASE_URL = "http://localhost:5141";
-    
-    // Set active ticket ID dynamically from URL parameter
-    let activeTicketId = ticketId;
 
-    // Backend conversation route
-    const messagesApiUrl = `${API_BASE_URL}/api/messages/${activeTicketId}`;
-
-    // --------------------------------
-    // SIDEBAR AND BREADCRUMB
-    // --------------------------------
+    const ticketApiUrl = `${API_BASE_URL}/api/tickets/${encodeURIComponent(ticketId)}`;
+    const messagesApiUrl = `${API_BASE_URL}/api/messages/${encodeURIComponent(ticketId)}`;
 
     if (fromAssigned) {
         document.getElementById("assigned-link")?.classList.add("active");
@@ -43,41 +36,40 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --------------------------------
-    // SAMPLE TICKETS FALLBACK
+    // CACHED / SAMPLE FALLBACK
     // --------------------------------
 
     const sampleTickets = {
         "SF-1024": {
-            issue: "Road Damage",
+            id: "SF-1024",
+            title: "Road Damage",
             location: "BGC, Taguig",
-            status: "pending",
-            date: "October 24, 2026",
+            status: "Pending",
+            dateSubmitted: "October 24, 2026",
             description:
                 "A damaged road surface has been reported. Please inspect the location and arrange the necessary repairs."
         },
 
         "SF-1025": {
-            issue: "Broken Streetlight",
+            id: "SF-1025",
+            title: "Broken Streetlight",
             location: "Makati City",
-            status: "ongoing",
-            date: "October 24, 2026",
+            status: "Ongoing",
+            dateSubmitted: "October 24, 2026",
             description:
                 "A broken streetlight has been reported. Please inspect the streetlight and arrange maintenance."
         },
 
         "SF-1026": {
-            issue: "Garbage Collection",
+            id: "SF-1026",
+            title: "Garbage Collection",
             location: "Pasig City",
-            status: "pending",
-            date: "October 25, 2026",
+            status: "Pending",
+            dateSubmitted: "October 25, 2026",
             description:
                 "A garbage collection issue has been reported. Please check the location and arrange collection."
         }
     };
-
-    // --------------------------------
-    // LOAD SAVED TICKET INFORMATION
-    // --------------------------------
 
     function getSavedTickets() {
         try {
@@ -88,92 +80,88 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    let savedTickets = getSavedTickets();
+    let ticket = null;
 
-    // Initial fallback placeholder while loading
-    let ticket = savedTickets[ticketId] || sampleTickets[ticketId] || {
-        issue: "Loading ticket...",
-        location: "Loading...",
-        status: "pending",
-        date: "Loading...",
-        description: "Fetching ticket details..."
-    };
+    // --------------------------------
+    // NORMALIZATION
+    // --------------------------------
 
-    // Helper to normalize and render ticket data
-    function applyTicketData(rawTicket) {
-        const normalizedDate = rawTicket.date || rawTicket.dateSubmitted || rawTicket.DateSubmitted || "Date unavailable";
-        
-        ticket = {
-            issue: rawTicket.issue || rawTicket.title || rawTicket.Title || "No Title",
-            location: rawTicket.location || rawTicket.Location || "Unknown",
-            status: normalizeStatus(rawTicket.status || rawTicket.Status),
-            date: normalizedDate,
-            description: rawTicket.description || rawTicket.Description || "No description provided.",
-            department: rawTicket.department || rawTicket.Department || "",
-            notes: rawTicket.notes || "",
-            ...(savedTickets[ticketId] || {}) // LocalStorage overrides take priority
-        };
-        renderTicket();
-    }
-
-    // If it's already in sample tickets or localStorage, render immediately
-    if (savedTickets[ticketId] || sampleTickets[ticketId]) {
-        applyTicketData(ticket);
-    } else {
-        // Fetch all tickets from backend API and find the matching one
-        fetch(`${API_BASE_URL}/api/tickets`)
-            .then(res => {
-                if (!res.ok) throw new Error("Failed to fetch tickets list");
-                return res.json();
-            })
-            .then(data => {
-                const ticketsArray = Array.isArray(data) ? data : (data.tickets || []);
-                const found = ticketsArray.find(t => {
-                    const tid = String(t.id ?? t.Id ?? t.ticketId ?? t.TicketId ?? "");
-                    return tid === ticketId;
-                });
-
-                if (found) {
-                    applyTicketData(found);
-                } else {
-                    // Fallback if not found anywhere
-                    ticket = {
-                        issue: "Ticket Not Found",
-                        location: "Unknown",
-                        status: "pending",
-                        date: "N/A",
-                        description: `Could not find ticket ID #${ticketId} in database.`
-                    };
-                    renderTicket();
-                }
-            })
-            .catch(err => {
-                console.error("Error loading ticket from API:", err);
-                ticket.issue = "Error Loading Ticket";
-                ticket.description = "Could not connect to backend tickets API.";
-                renderTicket();
-            });
-    }
-
-    // Support older status values saved in localStorage
+    // The API, the dashboard, and the Flutter app all use these three values.
     function normalizeStatus(value) {
-        const status = String(value || "pending")
+        const status = String(value || "")
+            .trim()
             .toLowerCase()
-            .replace(/\s+/g, "-");
+            .replace(/[_-]/g, " ")
+            .replace(/\s+/g, " ");
 
         if (
-            status === "assigned" ||
-            status === "in-progress" ||
+            status === "ongoing" ||
             status === "in progress" ||
-            status === "ongoing"
+            status === "inprogress" ||
+            status === "assigned" ||
+            status === "working"
         ) {
-            return "ongoing";
+            return "In Progress";
         }
 
+        if (
+            status === "resolved" ||
+            status === "closed" ||
+            status === "completed" ||
+            status === "done"
+        ) {
+            return "Resolved";
+        }
+
+        return "Submitted";
+    }
+
+    function badgeClass(status) {
+        if (status === "In Progress") return "in-progress";
+        if (status === "Resolved") return "resolved";
         return "pending";
     }
 
-    ticket.status = normalizeStatus(ticket.status);
+    function formatDate(value) {
+        if (!value) return "Date unavailable";
+
+        const date = new Date(value);
+        return isNaN(date.getTime())
+            ? value
+            : date.toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric"
+            });
+    }
+
+    function normalizeTicket(rawTicket) {
+        const progressValue = Number(rawTicket.progress);
+
+        return {
+            id: String(rawTicket.id ?? rawTicket.Id ?? rawTicket.ticketId ?? ticketId),
+            issue: rawTicket.title || rawTicket.Title || rawTicket.issue || "No Title",
+            location: rawTicket.location || rawTicket.Location || "Unknown",
+            status: normalizeStatus(rawTicket.status || rawTicket.Status),
+            date: formatDate(
+                rawTicket.dateSubmitted ||
+                rawTicket.DateSubmitted ||
+                rawTicket.date ||
+                rawTicket.date_submitted
+            ),
+            description:
+                rawTicket.description || rawTicket.Description || "No description provided.",
+            department:
+                rawTicket.assignedDepartment ||
+                rawTicket.assigned_department ||
+                rawTicket.department ||
+                "",
+            notes: rawTicket.adminNotes || rawTicket.admin_notes || rawTicket.notes || "",
+            progress: Number.isFinite(progressValue)
+                ? Math.min(100, Math.max(0, progressValue))
+                : 0
+        };
+    }
 
     // --------------------------------
     // HTML ELEMENTS
@@ -191,6 +179,8 @@ document.addEventListener("DOMContentLoaded", function () {
         status: document.getElementById("ticket-status"),
         department: document.getElementById("ticket-department"),
         notes: document.getElementById("admin-notes"),
+        progress: document.getElementById("ticket-progress"),
+        progressNote: document.getElementById("progress-note"),
 
         assignment: document.getElementById("current-assignment"),
 
@@ -199,48 +189,39 @@ document.addEventListener("DOMContentLoaded", function () {
         assignButton: document.getElementById("assign-button"),
 
         conversation: document.getElementById("conversation-messages"),
-        conversationNotice: document.getElementById("conversation-notice"),
         messageForm: document.getElementById("message-form"),
         messageInput: document.getElementById("message-input")
     };
 
     // --------------------------------
-    // STATUS DISPLAY
-    // --------------------------------
-
-    function formatStatus(value) {
-        return value === "ongoing" ? "Ongoing" : "Pending";
-    }
-
-    function updateStatusBadge() {
-        if (!elements.displayStatus) return;
-        elements.displayStatus.textContent = formatStatus(ticket.status);
-        elements.displayStatus.className = `status-badge ${ticket.status}`;
-    }
-
-    // --------------------------------
-    // DISPLAY TICKET
+    // RENDER
     // --------------------------------
 
     function renderTicket() {
+        if (!ticket) return;
+
         if (elements.ticketId) elements.ticketId.textContent = `#${ticketId}`;
         if (elements.issue) elements.issue.textContent = ticket.issue || "No Title";
         if (elements.location) elements.location.textContent = ticket.location || "Unknown";
         if (elements.date) elements.date.textContent = ticket.date || "Date unavailable";
-        if (elements.description) elements.description.textContent = ticket.description || "No description provided.";
+        if (elements.description) {
+            elements.description.textContent = ticket.description || "No description provided.";
+        }
 
         if (elements.status) elements.status.value = ticket.status;
         if (elements.department) elements.department.value = ticket.department || "";
         if (elements.notes) elements.notes.value = ticket.notes || "";
+        if (elements.progress) elements.progress.value = String(ticket.progress || 0);
 
-        if (elements.assignment) elements.assignment.textContent = ticket.department || "Not assigned";
+        if (elements.assignment) {
+            elements.assignment.textContent = ticket.department || "Not assigned";
+        }
 
-        updateStatusBadge();
+        if (elements.displayStatus) {
+            elements.displayStatus.textContent = ticket.status;
+            elements.displayStatus.className = `status-badge ${badgeClass(ticket.status)}`;
+        }
     }
-
-    // --------------------------------
-    // FORM MESSAGE
-    // --------------------------------
 
     function showMessage(msg, type) {
         if (!elements.message) return;
@@ -249,73 +230,151 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --------------------------------
+    // LOAD TICKET
+    // --------------------------------
+
+    async function loadTicket() {
+        try {
+            const response = await fetch(ticketApiUrl);
+
+            if (response.status === 404) {
+                const cached = getSavedTickets()[ticketId] || sampleTickets[ticketId];
+                if (cached) {
+                    ticket = normalizeTicket(cached);
+                    renderTicket();
+                    showMessage(`Ticket #${ticketId} is not in the database; showing the local copy.`, "error");
+                    return;
+                }
+
+                ticket = normalizeTicket({
+                    id: ticketId,
+                    title: "Ticket Not Found",
+                    location: "Unknown",
+                    description: `Could not find ticket ID #${ticketId} in the database.`,
+                    status: "Submitted"
+                });
+                renderTicket();
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`API returned status ${response.status}`);
+            }
+
+            ticket = normalizeTicket(await response.json());
+            renderTicket();
+        } catch (error) {
+            console.error("Could not load ticket from API:", error);
+
+            const cached = getSavedTickets()[ticketId] || sampleTickets[ticketId];
+            if (cached) {
+                ticket = normalizeTicket(cached);
+                renderTicket();
+            }
+
+            showMessage("Could not reach the backend. Changes cannot be saved right now.", "error");
+        }
+    }
+
+    // --------------------------------
     // SAVE TICKET
     // --------------------------------
 
-    function saveTicket() {
-        const selectedStatus = elements.status ? elements.status.value : "pending";
-        const selectedDepartment = elements.department ? elements.department.value : "";
+    async function saveTicket() {
+        if (!ticket) return false;
 
-        if (selectedStatus === "ongoing" && !selectedDepartment) {
-            showMessage("Please select a department before setting the ticket to Ongoing.", "error");
+        const selectedStatus = elements.status ? elements.status.value : "Submitted";
+        const selectedDepartment = elements.department ? elements.department.value.trim() : "";
+        const progressValue = elements.progress ? Number(elements.progress.value) : 0;
+
+        if ((selectedStatus === "In Progress" || selectedStatus === "Resolved") && !selectedDepartment) {
+            showMessage("Please select a department before moving the ticket forward.", "error");
             if (elements.department) elements.department.focus();
             return false;
         }
 
-        ticket.status = selectedStatus;
-        ticket.department = selectedDepartment;
-        ticket.notes = elements.notes ? elements.notes.value.trim() : "";
+        if (!Number.isFinite(progressValue) || progressValue < 0 || progressValue > 100) {
+            showMessage("Progress must be a number between 0 and 100.", "error");
+            if (elements.progress) elements.progress.focus();
+            return false;
+        }
 
-        savedTickets = getSavedTickets();
-        savedTickets[ticketId] = ticket;
+        const note = elements.progressNote ? elements.progressNote.value.trim() : "";
 
         try {
-            localStorage.setItem(storageKey, JSON.stringify(savedTickets));
+            const response = await fetch(ticketApiUrl, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    status: selectedStatus,
+                    assignedDepartment: selectedDepartment,
+                    adminNotes: elements.notes ? elements.notes.value.trim() : "",
+                    progress: progressValue,
+                    note: note || null
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API returned status ${response.status}`);
+            }
+
+            ticket = normalizeTicket(await response.json());
             renderTicket();
+
+            if (elements.progressNote) elements.progressNote.value = "";
+
+            // Cache the confirmed server state so this page still shows
+            // something if the backend goes offline later.
+            try {
+                const savedTickets = getSavedTickets();
+                savedTickets[ticketId] = ticket;
+                localStorage.setItem(storageKey, JSON.stringify(savedTickets));
+            } catch (error) {
+                console.warn("Could not cache the ticket locally:", error);
+            }
+
+            showMessage("Ticket saved. The citizen app will pick this up within a few seconds.", "success");
             return true;
         } catch (error) {
             console.error("Could not save ticket:", error);
-            showMessage("Could not save changes in this browser.", "error");
+            showMessage("Could not save to the backend. The ticket was not changed.", "error");
             return false;
         }
     }
 
-    // --------------------------------
-    // SAVE CHANGES BUTTON
-    // --------------------------------
-
     if (elements.form) {
-        elements.form.addEventListener("submit", function (event) {
+        elements.form.addEventListener("submit", async function (event) {
             event.preventDefault();
-            if (saveTicket()) {
-                showMessage("Ticket changes saved successfully. Return to the ticket list to see its updated status.", "success");
-            }
+            await saveTicket();
         });
     }
 
-    // --------------------------------
-    // ASSIGN TICKET BUTTON
-    // --------------------------------
-
     if (elements.assignButton) {
-        elements.assignButton.addEventListener("click", function () {
-            if (!elements.department || !elements.department.value) {
+        elements.assignButton.addEventListener("click", async function () {
+            if (!elements.department || !elements.department.value.trim()) {
                 showMessage("Please select a department first.", "error");
                 if (elements.department) elements.department.focus();
                 return;
             }
 
-            if (elements.status) elements.status.value = "ongoing";
+            if (elements.status) elements.status.value = "In Progress";
+            if (elements.progress && Number(elements.progress.value) === 0) {
+                elements.progress.value = "10";
+            }
 
-            if (saveTicket()) {
-                showMessage(`Ticket is now Ongoing and assigned to ${ticket.department}.`, "success");
+            if (await saveTicket()) {
+                showMessage(`Ticket is now In Progress and assigned to ${ticket.department}.`, "success");
             }
         });
     }
 
     // --------------------------------
-    // CONVERSATION DISPLAY
+    // CONVERSATION
     // --------------------------------
+
+    function senderLabel(senderType) {
+        return String(senderType || "").toLowerCase() === "admin" ? "Admin" : "Citizen";
+    }
 
     function displayConversationMessage(msg) {
         if (!elements.conversation) return;
@@ -324,23 +383,20 @@ document.addEventListener("DOMContentLoaded", function () {
         messageBox.className = "conversation-message";
 
         const sender = document.createElement("strong");
-        sender.textContent = msg.senderType || msg.sender || "User";
+        sender.textContent = senderLabel(msg.senderType || msg.sender_type);
 
         const content = document.createElement("p");
         content.textContent = msg.message || msg.content || "";
 
         const timestamp = document.createElement("small");
-        const timestampValue = msg.dateSent || msg.sentAt || msg.createdAt || msg.timestamp;
-        
+        const timestampValue = msg.dateSent || msg.date_sent || msg.createdAt || msg.timestamp;
+
         if (timestampValue) {
             const date = new Date(timestampValue);
             timestamp.textContent = isNaN(date.getTime()) ? "" : date.toLocaleString();
         }
 
-        messageBox.appendChild(sender);
-        messageBox.appendChild(content);
-        messageBox.appendChild(timestamp);
-
+        messageBox.append(sender, content, timestamp);
         elements.conversation.appendChild(messageBox);
     }
 
@@ -355,23 +411,24 @@ document.addEventListener("DOMContentLoaded", function () {
         elements.conversation.appendChild(notice);
     }
 
-    // --------------------------------
-    // LOAD CONVERSATION FROM BACKEND
-    // --------------------------------
+    let conversationLoaded = false;
 
     async function loadConversation() {
-        showConversationNotice("Loading conversation...");
+        if (!conversationLoaded) {
+            showConversationNotice("Loading conversation...");
+        }
 
         try {
             const response = await fetch(messagesApiUrl);
-
             if (!response.ok) {
                 throw new Error("Conversation service is unavailable.");
             }
 
             const messages = await response.json();
             if (!elements.conversation) return;
+
             elements.conversation.innerHTML = "";
+            conversationLoaded = true;
 
             if (!Array.isArray(messages) || messages.length === 0) {
                 showConversationNotice("No messages yet. You can start the conversation.");
@@ -379,16 +436,14 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             messages.forEach(displayConversationMessage);
-
+            elements.conversation.scrollTop = elements.conversation.scrollHeight;
         } catch (error) {
             console.error("Could not load conversation:", error);
-            showConversationNotice("Conversation is not connected yet. The backend messaging API needs to be implemented.");
+            if (!conversationLoaded) {
+                showConversationNotice("Conversation is unavailable. Check that the backend is running.");
+            }
         }
     }
-
-    // --------------------------------
-    // SEND MESSAGE TO BACKEND
-    // --------------------------------
 
     if (elements.messageForm) {
         elements.messageForm.addEventListener("submit", async function (event) {
@@ -401,15 +456,11 @@ document.addEventListener("DOMContentLoaded", function () {
             if (sendButton) sendButton.disabled = true;
 
             try {
-                const postUrl = `${API_BASE_URL}/api/messages`;
-
-                const response = await fetch(postUrl, {
+                const response = await fetch(`${API_BASE_URL}/api/messages`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        ticketId: activeTicketId,
+                        ticketId: ticketId,
                         senderType: "admin",
                         message: messageContent
                     })
@@ -421,10 +472,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (elements.messageInput) elements.messageInput.value = "";
                 await loadConversation();
-
             } catch (error) {
                 console.error("Could not send message:", error);
-                showConversationNotice("Message not sent. The backend messaging API is not available yet.");
+                showConversationNotice("Message not sent. Check that the backend is running.");
             } finally {
                 if (sendButton) sendButton.disabled = false;
             }
@@ -432,10 +482,23 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // --------------------------------
-    // INITIALIZE PAGE
+    // INITIALIZE
     // --------------------------------
 
-    renderTicket();
+    const cachedTicket = getSavedTickets()[ticketId] || sampleTickets[ticketId];
+    if (cachedTicket) {
+        ticket = normalizeTicket(cachedTicket);
+        renderTicket();
+    }
+
+    loadTicket();
     loadConversation();
 
+    // The citizen app posts into the same thread; poll so admin sees replies
+    // without reloading the page.
+    setInterval(loadConversation, 4000);
+
+    window.addEventListener("storage", function (event) {
+        if (event.key === storageKey) loadTicket();
+    });
 });

@@ -1,15 +1,18 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../models/issuecategory.dart';
 import '../theme/app_theme.dart';
+import '../ticketservice.dart';
 import '../widget/page_header.dart';
 import '../widget/report_card.dart';
+import '../widget/report_photo.dart';
 import 'inquiry.dart';
 import 'report_progress.dart';
 
-/// Everything known about one report, and the entry point to its history.
+/// Everything known about one report, refreshed from the backend while it is
+/// open so admin status, progress, and assignment changes appear live.
 class ReportDetailsPage extends StatefulWidget {
   const ReportDetailsPage({
     super.key,
@@ -25,19 +28,48 @@ class ReportDetailsPage extends StatefulWidget {
 }
 
 class _ReportDetailsPageState extends State<ReportDetailsPage> {
-  IssueReport get report => widget.report;
+  static const Duration _refreshEvery = Duration(seconds: 5);
+
+  late IssueReport _report = widget.report;
+  Timer? _poll;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    _poll = Timer.periodic(_refreshEvery, (_) => _refresh());
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    try {
+      final ticket = await TicketService.fetchTicket(_report.id);
+      if (!mounted) return;
+      setState(() => _report = IssueReport.fromJson(ticket));
+    } catch (_) {
+      // Keep the last known state; the next poll will retry.
+    }
+  }
 
   Future<void> _openInquiry() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => InquiryPage(report: report)),
+      MaterialPageRoute(builder: (_) => InquiryPage(report: _report)),
     );
-    if (mounted) setState(() {});
+    if (mounted) _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
-    final photo = report.photoPath;
+    final report = _report;
+    final hasPhoto =
+        (report.photoPath?.isNotEmpty ?? false) ||
+        (report.photoUrl?.isNotEmpty ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -67,18 +99,9 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
             alignment: Alignment.centerLeft,
             child: StatusPill(status: report.status),
           ),
-          if (photo != null) ...[
+          if (hasPhoto) ...[
             const SizedBox(height: 18),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Image.file(
-                File(photo),
-                height: 210,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const _MissingPhoto(),
-              ),
-            ),
+            ReportPhoto(report: report),
           ],
           const SizedBox(height: 20),
           _InfoCard(
@@ -104,6 +127,12 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
                 label: 'Reported',
                 value: _formatDateTime(report.createdAt),
               ),
+              if (report.assignedDepartment != null)
+                _InfoRow(
+                  icon: Icons.apartment_outlined,
+                  label: 'Assigned Department',
+                  value: report.assignedDepartment!,
+                ),
             ],
           ),
           const SizedBox(height: 14),
@@ -311,31 +340,6 @@ class _ProgressCard extends StatelessWidget {
                 ? 'This issue has been closed by your barangay.'
                 : 'Your barangay is working on this issue.',
             style: const TextStyle(fontSize: 11.5, color: AppTheme.muted),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MissingPhoto extends StatelessWidget {
-  const _MissingPhoto();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 210,
-      width: double.infinity,
-      color: AppTheme.surface,
-      alignment: Alignment.center,
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.broken_image_outlined, color: AppTheme.muted, size: 30),
-          SizedBox(height: 8),
-          Text(
-            'Photo is no longer on this device',
-            style: TextStyle(fontSize: 11.5, color: AppTheme.muted),
           ),
         ],
       ),

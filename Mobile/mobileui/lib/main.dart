@@ -149,38 +149,17 @@ bool _isLoadingReports = true;
     _loadReports();
   }
 
-  Future<void> _loadReports() async {
+  Future<void> _loadReports({bool showLoader = true}) async {
+    if (showLoader && !_isLoadingReports) {
+      setState(() => _isLoadingReports = true);
+    }
+
     try {
       final tickets = await TicketService.fetchTickets();
 
       final loadedReports = tickets.map((item) {
         final ticket = Map<String, dynamic>.from(item as Map);
-
-        final rawDate =
-            ticket['dateSubmitted'] ?? ticket['date_submitted'];
-
-        final createdAt = DateTime.tryParse(
-          rawDate?.toString() ?? '',
-        ) ?? DateTime.now();
-
-        final rawPhoto = ticket['photoUrl'] ?? ticket['photo_url'];
-
-        var status = (ticket['status'] ?? 'Submitted').toString();
-
-        if (status.toLowerCase() == 'pending') {
-          status = 'Submitted';
-        }
-
-        return IssueReport(
-          id: (ticket['id'] ?? '').toString(),
-          title: (ticket['title'] ?? 'Untitled').toString(),
-          category: (ticket['category'] ?? 'Others').toString(),
-          description: (ticket['description'] ?? '').toString(),
-          location: (ticket['location'] ?? '').toString(),
-          status: status,
-          createdAt: createdAt,
-          photoUrl: rawPhoto?.toString(),
-        );
+        return IssueReport.fromJson(ticket);
       }).toList();
 
       if (!mounted) return;
@@ -198,17 +177,23 @@ bool _isLoadingReports = true;
         _isLoadingReports = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not load saved reports: $error'),
-        ),
-      );
+      if (showLoader) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not load saved reports: $error'),
+          ),
+        );
+      }
     }
   }
 
 
-  void _open(Widget page) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  Future<void> _open(Widget page) async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => page));
+    if (mounted) _loadReports(showLoader: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +230,7 @@ bool _isLoadingReports = true;
         _open(SubmitReportPage(onSubmitted: _addReport));
       } else {
         setState(() => _tab = i);
+        _loadReports(showLoader: false);
       }
     },
         destinations: const [

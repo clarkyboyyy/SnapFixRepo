@@ -1,54 +1,53 @@
 using Microsoft.AspNetCore.Mvc;
-using Supabase;
+using Microsoft.EntityFrameworkCore;
+using AppBackend.Data;
 
 [Route("api/messages")]
 [ApiController]
 public class MessagesController : ControllerBase
 {
-    private readonly Supabase.Client _supabase;
+    private readonly AppDbContext _context;
 
-    public MessagesController(Supabase.Client supabase)
+    public MessagesController(AppDbContext context)
     {
-        _supabase = supabase;
+        _context = context;
     }
 
     // GET: api/messages/SF-1793252633763
     [HttpGet("{ticketId}")]
     public async Task<IActionResult> GetMessages(string ticketId)
     {
-        try
-        {
-            var response = await _supabase.From<MessageModel>()
-                .Filter("ticket_id", Supabase.Postgrest.Constants.Operator.Equals, ticketId)
-                .Get();
-                
-            return Ok(response.Models);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching messages: {ex.Message}");
-            return StatusCode(500, new { error = ex.Message });
-        }
+        var messages = await _context.Messages
+            .Where(message => message.TicketId == ticketId)
+            .OrderBy(message => message.DateSent)
+            .ToListAsync();
+
+        return Ok(messages);
     }
 
     // POST: api/messages
-   [HttpPost]
+    [HttpPost]
     public async Task<IActionResult> SendMessage([FromBody] MessageModel newMessage)
     {
         try
         {
-            if (newMessage == null || string.IsNullOrWhiteSpace(newMessage.TicketId) || string.IsNullOrWhiteSpace(newMessage.Message))
+            if (newMessage == null ||
+                string.IsNullOrWhiteSpace(newMessage.TicketId) ||
+                string.IsNullOrWhiteSpace(newMessage.Message))
             {
                 return BadRequest(new { error = "Invalid message payload." });
             }
 
+            var senderType = newMessage.SenderType.Trim().ToLowerInvariant();
+            newMessage.Id = 0;
+            newMessage.SenderType = senderType == "admin" ? "admin" : "citizen";
+            newMessage.Message = newMessage.Message.Trim();
             newMessage.DateSent = DateTime.UtcNow;
 
-            // Use ReturnType.Minimal to prevent mapping errors on return
-            var response = await _supabase.From<MessageModel>()
-                .Insert(newMessage, new Supabase.Postgrest.QueryOptions { Returning = Supabase.Postgrest.QueryOptions.ReturnType.Minimal });
+            _context.Messages.Add(newMessage);
+            await _context.SaveChangesAsync();
 
-            return Ok(new { success = true });
+            return Ok(newMessage);
         }
         catch (Exception ex)
         {

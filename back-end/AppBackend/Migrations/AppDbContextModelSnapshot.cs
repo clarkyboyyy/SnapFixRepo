@@ -87,6 +87,10 @@ namespace AppBackend.Migrations
                         .HasColumnType("text")
                         .HasColumnName("priority");
 
+                    b.Property<int>("Progress")
+                        .HasColumnType("integer")
+                        .HasColumnName("progress");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text")
@@ -100,6 +104,41 @@ namespace AppBackend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("tickets");
+                });
+
+            modelBuilder.Entity("AppBackend.Model.TicketUpdate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("integer")
+                        .HasColumnName("progress");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TicketId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ticket_updates");
                 });
 
             modelBuilder.Entity("AppBackend.Model.User", b =>
@@ -136,6 +175,42 @@ namespace AppBackend.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("MessageModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DateSent")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_sent");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<string>("SenderType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("sender_type");
+
+                    b.Property<string>("TicketId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ticket_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Messages", null, t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
                 });
 #pragma warning restore 612, 618
         }

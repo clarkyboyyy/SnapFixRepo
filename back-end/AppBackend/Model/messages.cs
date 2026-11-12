@@ -1,10 +1,14 @@
-using Supabase.Postgrest.Attributes;
-using Supabase.Postgrest.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
+// Row in the existing `Messages` table. It is excluded from migrations
+// because Supabase already owns that table.
 [Table("Messages")]
-public class MessageModel : BaseModel
+public class MessageModel
 {
-    [PrimaryKey("id", false)]
+    [Key]
+    [Column("id")]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
     [Column("ticket_id")]

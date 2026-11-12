@@ -38,5 +38,9 @@ namespace AppBackend.Model
 
         [Column("admin_notes")]
         public string? AdminNotes { get; set; }
+
+        // Work completion reported by the admin, 0-100.
+        [Column("progress")]
+        public int Progress { get; set; }
     }
 }

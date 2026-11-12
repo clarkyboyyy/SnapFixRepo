@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/issuecategory.dart';
 import '../theme/app_theme.dart';
+import '../ticketservice.dart';
+import '../utils/date_format.dart';
 import '../widget/page_header.dart';
 import 'inquiry.dart';
 
@@ -16,7 +20,49 @@ class ReportProgressPage extends StatefulWidget {
 }
 
 class _ReportProgressPageState extends State<ReportProgressPage> {
-  IssueReport get _report => widget.report;
+  static const Duration _refreshEvery = Duration(seconds: 5);
+
+  late IssueReport _report = widget.report;
+  List<ReportUpdate> _history = [];
+  Timer? _poll;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    _poll = Timer.periodic(_refreshEvery, (_) => _refresh());
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    try {
+      final results = await Future.wait([
+        TicketService.fetchTicket(_report.id),
+        TicketService.fetchUpdates(_report.id),
+      ]);
+      if (!mounted) return;
+
+      final ticket = Map<String, dynamic>.from(results[0] as Map);
+      final updates = (results[1] as List)
+          .map(
+            (item) =>
+                ReportUpdate.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+
+      setState(() {
+        _report = IssueReport.fromJson(ticket);
+        _history = updates;
+      });
+    } catch (_) {
+      // Keep the last known state; the next poll will retry.
+    }
+  }
 
   /// Index of the stage the report currently sits at.
   int get _currentStage {
@@ -29,7 +75,7 @@ class _ReportProgressPageState extends State<ReportProgressPage> {
   Future<void> _openInquiry() async {
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => InquiryPage(report: _report)));
-    if (mounted) setState(() {});
+    if (mounted) _refresh();
   }
 
   @override
@@ -93,6 +139,17 @@ class _ReportProgressPageState extends State<ReportProgressPage> {
                     valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),
+                if (report.assignedDepartment != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Assigned to ${report.assignedDepartment}',
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.muted,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -100,13 +157,22 @@ class _ReportProgressPageState extends State<ReportProgressPage> {
             padding: EdgeInsets.fromLTRB(2, 22, 2, 10),
             child: SectionLabel('TRACKING HISTORY'),
           ),
-          for (var i = 0; i < _stages.length; i++)
-            _TimelineRow(
-              label: _stages[i],
-              detail: _details[i],
-              done: i <= stage,
-              isLast: i == _stages.length - 1,
-            ),
+          if (_history.isNotEmpty)
+            for (var i = 0; i < _history.length; i++)
+              _TimelineRow(
+                label: _history[i].status ?? 'Progress update',
+                detail: _historyDetail(_history[i]),
+                done: true,
+                isLast: i == _history.length - 1,
+              )
+          else
+            for (var i = 0; i < _stages.length; i++)
+              _TimelineRow(
+                label: _stages[i],
+                detail: _details[i],
+                done: i <= stage,
+                isLast: i == _stages.length - 1,
+              ),
           const SizedBox(height: 18),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,6 +206,14 @@ class _ReportProgressPageState extends State<ReportProgressPage> {
         ),
       ),
     );
+  }
+
+  static String _historyDetail(ReportUpdate update) {
+    return [
+      if (update.note != null) update.note!,
+      '${update.progress}% complete',
+      messageStamp(update.createdAt),
+    ].join(' • ');
   }
 
   static const List<String> _stages = [

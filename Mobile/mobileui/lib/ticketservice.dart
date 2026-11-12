@@ -1,30 +1,30 @@
-import 'package:http/http.dart' as http;
-
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+
+import '../apiconfig.dart';
+
 class TicketService {
+  static String get _baseUrl => ApiConfig.baseUrl;
+
   static Future<void> submitTicket(
     String id,
     String title,
     String location,
     String description,
   ) async {
-    var url = Uri.parse('http://localhost:5141/api/tickets');
-
-    var ticketData = {
-      "id": id,
-      "title": title,
-      "location": location,
-      "description": description,
-      "dateSubmitted": DateTime.now().toUtc().toIso8601String(),
-      "status": "Pending",
-      "priority": "High",
-    };
-
-    var response = await http.post(
-      url,
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/tickets'),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode(ticketData),
+      body: jsonEncode({
+        "id": id,
+        "title": title,
+        "location": location,
+        "description": description,
+        "dateSubmitted": DateTime.now().toUtc().toIso8601String(),
+        "status": "Submitted",
+        "priority": "High",
+      }),
     );
 
     // If it's NOT a success code (200 or 201), throw an error!
@@ -33,20 +33,56 @@ class TicketService {
     }
   }
 
-  static Future<void> sendMessage(String ticketId, String text) async {
-    var url = Uri.parse('http://localhost:5141/api/messages');
-    
-    var messageData = {
-      "ticketId": ticketId,
-      "message": text,
-      "senderType": "citizen",
-      "dateSent": DateTime.now().toUtc().toIso8601String()
-    };
+  /// The latest state of one ticket, including progress and assignment.
+  static Future<Map<String, dynamic>> fetchTicket(String ticketId) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/tickets/${Uri.encodeComponent(ticketId)}'),
+    );
 
-    var response = await http.post(
-      url,
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load ticket ${response.statusCode}');
+    }
+
+    return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
+  }
+
+  /// Admin status/progress history for a ticket, newest first.
+  static Future<List<dynamic>> fetchUpdates(String ticketId) async {
+    final response = await http.get(
+      Uri.parse(
+        '$_baseUrl/api/tickets/${Uri.encodeComponent(ticketId)}/updates',
+      ),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load ticket history ${response.statusCode}');
+    }
+
+    return jsonDecode(response.body) as List<dynamic>;
+  }
+
+  static Future<List<dynamic>> fetchMessages(String ticketId) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/messages/${Uri.encodeComponent(ticketId)}'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load messages ${response.statusCode}');
+    }
+
+    return jsonDecode(response.body) as List<dynamic>;
+  }
+
+  static Future<void> sendMessage(String ticketId, String text) async {
+    final response = await http.post(
+      Uri.parse('$_baseUrl/api/messages'),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode(messageData), 
+      body: jsonEncode({
+        "ticketId": ticketId,
+        "message": text,
+        "senderType": "citizen",
+        "dateSent": DateTime.now().toUtc().toIso8601String(),
+      }),
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {
@@ -55,8 +91,7 @@ class TicketService {
   }
 
   static Future<List<dynamic>> fetchTickets() async {
-    var url = Uri.parse('http://localhost:5141/api/tickets');
-    var response = await http.get(url);
+    final response = await http.get(Uri.parse('$_baseUrl/api/tickets'));
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
