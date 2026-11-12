@@ -1,9 +1,9 @@
+import 'ticketservice.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/local_account_store.dart';
-import 'data/sample_reports.dart';
 import 'models/issuecategory.dart';
 import 'screen/auth_screen.dart';
 import 'screen/edit_profile.dart';
@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
       home: SignupPage(
         onSignedIn: (String email, String? name) {
           // You can add logic here later for what happens after they sign up
-          print('Signed up with: $email');
+          debugPrint('Signed up with: $email');
         },
       ),
     );
@@ -135,14 +135,65 @@ class SnapFixShell extends StatefulWidget {
 }
 
 class _SnapFixShellState extends State<SnapFixShell> {
-  final List<IssueReport> _reports = createSampleReports();
+  final List<IssueReport> _reports = [];
+bool _isLoadingReports = true;
+
   final LocalAccountStore _store = LocalAccountStore();
   int _tab = 0;
-  int _serial = 14;
   late LocalAccount? _account = widget.initialAccount;
 
-  void _open(Widget page) =>
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports({bool showLoader = true}) async {
+    if (showLoader && !_isLoadingReports) {
+      setState(() => _isLoadingReports = true);
+    }
+
+    try {
+      final tickets = await TicketService.fetchTickets();
+
+      final loadedReports = tickets.map((item) {
+        final ticket = Map<String, dynamic>.from(item as Map);
+        return IssueReport.fromJson(ticket);
+      }).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _reports
+          ..clear()
+          ..addAll(loadedReports);
+        _isLoadingReports = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingReports = false;
+      });
+
+      if (showLoader) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not load saved reports: $error'),
+          ),
+        );
+      }
+    }
+  }
+
+
+  Future<void> _open(Widget page) async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => page));
+    if (mounted) _loadReports(showLoader: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,16 +216,23 @@ class _SnapFixShellState extends State<SnapFixShell> {
     ];
 
     return Scaffold(
-      body: SafeArea(child: pages[_tab]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) {
-          if (i == 2) {
-            _open(SubmitReportPage(onSubmitted: _addReport));
-          } else {
-            setState(() => _tab = i);
-          }
-        },
+  body: SafeArea(
+    child: _isLoadingReports
+        ? const Center(
+            child: CircularProgressIndicator(),
+          )
+        : pages[_tab],
+  ),
+  bottomNavigationBar: NavigationBar(
+    selectedIndex: _tab,
+    onDestinationSelected: (i) {
+      if (i == 2) {
+        _open(SubmitReportPage(onSubmitted: _addReport));
+      } else {
+        setState(() => _tab = i);
+        _loadReports(showLoader: false);
+      }
+    },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

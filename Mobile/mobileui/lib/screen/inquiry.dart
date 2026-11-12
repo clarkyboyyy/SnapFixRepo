@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../ticketservice.dart';
 import '../models/issuecategory.dart';
@@ -28,7 +30,9 @@ class _InquiryPageState extends State<InquiryPage> {
   ];
 
   IssueReport get _report => widget.report;
-  List<InquiryMessage> get _messages => _report.messages;
+
+  final List<InquiryMessage> _messages = [];
+  Timer? _poll;
 
   bool get _waitingForAdmin =>
       _messages.isNotEmpty && !_messages.last.fromAdmin;
@@ -36,17 +40,56 @@ class _InquiryPageState extends State<InquiryPage> {
   @override
   void initState() {
     super.initState();
+    _messages.addAll(_report.messages);
     for (final message in _messages) {
       if (message.fromAdmin) message.seen = true;
     }
     _controller.addListener(_onDraftChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+    _loadMessages();
+    _poll = Timer.periodic(
+      const Duration(seconds: 4),
+      (_) => _loadMessages(),
+    );
+  }
+
+  /// Pulls the shared thread from the backend so admin replies appear without
+  /// leaving the screen.
+  Future<void> _loadMessages() async {
+    try {
+      final raw = await TicketService.fetchMessages(_report.id);
+      if (!mounted) return;
+
+      final fetched = raw
+          .map(
+            (item) =>
+                InquiryMessage.fromJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+      for (final message in fetched) {
+        if (message.fromAdmin) message.seen = true;
+      }
+      final grew = fetched.length > _messages.length;
+
+      setState(() {
+        _messages
+          ..clear()
+          ..addAll(fetched);
+      });
+
+      if (grew) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
+      }
+    } catch (_) {
+      // Keep the thread that is already on screen; the next poll retries.
+    }
   }
 
   void _onDraftChanged() => setState(() {});
 
   @override
   void dispose() {
+    _poll?.cancel();
     _controller.removeListener(_onDraftChanged);
     _controller.dispose();
     _focus.dispose();
@@ -71,19 +114,8 @@ class _InquiryPageState extends State<InquiryPage> {
     // Transmit to C# API
     await TicketService.sendMessage(_report.id, sentText);
 
-    // Update the chat bubble list ONLY if successful
-    setState(() {
-      _messages.add(
-        InquiryMessage(
-          text: sentText,
-          author: InquiryAuthor.user,
-          sentAt: DateTime.now(),
-        ),
-      );
-    });
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
-    
+    // Re-read the shared thread so the bubble and its server timestamp match.
+    await _loadMessages();
   } catch (e) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -128,8 +128,9 @@
                             <label for="ticket-status">Ticket Status</label>
 
                             <select id="ticket-status" required>
-                                <option value="pending">Pending</option>
-                                <option value="ongoing">Ongoing</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
                             </select>
                         </div>
 
@@ -153,6 +154,27 @@
                                 id="admin-notes"
                                 rows="4"
                                 placeholder="Add internal notes or instructions..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ticket-progress">Progress (0–100%)</label>
+
+                            <input
+                                type="number"
+                                id="ticket-progress"
+                                min="0"
+                                max="100"
+                                step="5"
+                                value="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="progress-note">Progress Update Note</label>
+
+                            <textarea
+                                id="progress-note"
+                                rows="2"
+                                placeholder="Describe this update for the resident's tracking history..."></textarea>
                         </div>
 
                         <div class="assigned-info">

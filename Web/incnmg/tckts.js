@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     const storageKey = "snapfixTickets";
     const apiUrl = "http://localhost:5141/api/tickets";
@@ -7,7 +6,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("ticket-search");
     const countElement = document.getElementById("ticket-result-count");
     const sidebarCount = document.getElementById("incoming-ticket-count");
-
 
     let allTickets = [];
 
@@ -20,19 +18,40 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function normalizeStatus(status) {
-        const value = String(status || "pending")
+    // The API, the dashboard, and the Flutter app all use these three values.
+    function normalizeStatus(value) {
+        const status = String(value || "")
+            .trim()
             .toLowerCase()
-            .replace(/\s+/g, "-");
+            .replace(/[_-]/g, " ")
+            .replace(/\s+/g, " ");
 
         if (
-            value === "assigned" ||
-            value === "in-progress"
+            status === "ongoing" ||
+            status === "in progress" ||
+            status === "inprogress" ||
+            status === "assigned" ||
+            status === "working"
         ) {
-            return "ongoing";
+            return "In Progress";
         }
 
-        return value === "ongoing" ? "ongoing" : "pending";
+        if (
+            status === "resolved" ||
+            status === "closed" ||
+            status === "completed" ||
+            status === "done"
+        ) {
+            return "Resolved";
+        }
+
+        return "Submitted";
+    }
+
+    function badgeClass(status) {
+        if (status === "In Progress") return "in-progress";
+        if (status === "Resolved") return "resolved";
+        return "pending";
     }
 
     function normalizeTicket(ticket, fallbackId = "") {
@@ -45,79 +64,50 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         const rawDate =
-            ticket.date ||
             ticket.dateSubmitted ||
             ticket.DateSubmitted ||
+            ticket.date ||
             ticket.date_submitted;
 
         let date = "Date unavailable";
 
         if (rawDate) {
             const parsedDate = new Date(rawDate);
-
             date = isNaN(parsedDate.getTime())
                 ? rawDate
-                : parsedDate.toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric"
-                });
+                : parsedDate.toLocaleDateString();
         }
+
+        const progressValue = Number(ticket.progress);
 
         return {
             ...ticket,
             id,
-            issue: ticket.issue || ticket.title || ticket.Title || "No Title",
+            title: ticket.title || ticket.Title || ticket.issue || "No Title",
             description: ticket.description || ticket.Description || "",
             location: ticket.location || ticket.Location || "Unknown",
             status: normalizeStatus(ticket.status || ticket.Status),
             date,
-            department: ticket.department || ticket.Department || ""
+            department:
+                ticket.assignedDepartment ||
+                ticket.assigned_department ||
+                ticket.department ||
+                "",
+            progress: Number.isFinite(progressValue) ? progressValue : 0
         };
-    }
-
-    // API data is loaded first, then local saved changes override it.
-    function getTicketsWithSavedChanges(sourceTickets) {
-        const savedTickets = getSavedTickets();
-        const ticketMap = new Map();
-
-        sourceTickets.forEach(function (sourceTicket) {
-            const ticket = normalizeTicket(sourceTicket);
-
-            if (ticket.id) {
-                ticketMap.set(ticket.id, ticket);
-            }
-        });
-
-        // Include saved tickets and apply their latest changes.
-        Object.entries(savedTickets).forEach(function ([savedId, savedTicket]) {
-            const ticket = normalizeTicket(savedTicket, savedId);
-            const existingTicket = ticketMap.get(ticket.id) || {};
-
-            ticketMap.set(ticket.id, {
-                ...existingTicket,
-                ...ticket,
-                id: ticket.id,
-                status: normalizeStatus(savedTicket.status || ticket.status)
-            });
-        });
-
-        return Array.from(ticketMap.values());
     }
 
     function renderTickets() {
         const searchText = searchInput.value.trim().toLowerCase();
 
-        // FIX 1: Handle case sensitivity for "Pending" status
         const incomingTickets = allTickets.filter(function (ticket) {
-            return ticket.status && ticket.status.toLowerCase() === "pending";
+            return ticket.status === "Submitted";
         });
 
         const visibleTickets = incomingTickets.filter(function (ticket) {
-            // FIX 2: Safely read 'title' instead of 'issue'
-            const id = ticket.id ? ticket.id.toLowerCase() : "";
-            const title = ticket.title ? ticket.title.toLowerCase() : "";
-            const loc = ticket.location ? ticket.location.toLowerCase() : "";
+            const id = ticket.id.toLowerCase();
+            const title = ticket.title.toLowerCase();
+            const loc = ticket.location.toLowerCase();
 
             return (
                 id.includes(searchText) ||
@@ -135,10 +125,8 @@ document.addEventListener("DOMContentLoaded", function () {
             idCell.textContent = "#" + ticket.id;
 
             const issueCell = document.createElement("td");
-
             const issueTitle = document.createElement("strong");
-            // Mapping to the correct property from C#
-            issueTitle.textContent = ticket.title; 
+            issueTitle.textContent = ticket.title;
 
             const description = document.createElement("br");
             const descriptionText = document.createElement("small");
@@ -150,16 +138,18 @@ document.addEventListener("DOMContentLoaded", function () {
             locationCell.textContent = ticket.location;
 
             const dateCell = document.createElement("td");
-            // FIX 3: Map to 'dateSubmitted' and format it for the dashboard
-            const rawDate = ticket.dateSubmitted ? new Date(ticket.dateSubmitted) : new Date();
-            dateCell.textContent = rawDate.toLocaleDateString() + ' ' + rawDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const rawDate = ticket.dateSubmitted || ticket.date;
+            const parsedDate = new Date(rawDate);
+            dateCell.textContent = isNaN(parsedDate.getTime())
+                ? (rawDate || "Date unavailable")
+                : parsedDate.toLocaleDateString() + " " +
+                  parsedDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
             const statusCell = document.createElement("td");
             const statusBadge = document.createElement("span");
 
-            statusBadge.className = "status-badge pending";
-            statusBadge.textContent = "Pending";
-
+            statusBadge.className = `status-badge ${badgeClass(ticket.status)}`;
+            statusBadge.textContent = ticket.status;
             statusCell.appendChild(statusBadge);
 
             const actionCell = document.createElement("td");
@@ -167,7 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             reviewLink.href =
                 "../review/rev.html?id=" + encodeURIComponent(ticket.id);
-
             reviewLink.className = "review-button";
             reviewLink.textContent = "Review";
 
@@ -190,7 +179,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const cell = document.createElement("td");
 
             cell.colSpan = 6;
-            cell.textContent = "No pending tickets found.";
+            cell.textContent = "No submitted tickets found.";
             cell.style.textAlign = "center";
             cell.style.padding = "24px";
 
@@ -199,42 +188,52 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         countElement.textContent =
-            `Showing ${visibleTickets.length} of ${incomingTickets.length} pending tickets`;
+            `Showing ${visibleTickets.length} of ${incomingTickets.length} submitted tickets`;
 
         sidebarCount.textContent = incomingTickets.length;
     }
 
-    
+    async function loadTickets() {
+        try {
+            const response = await fetch(apiUrl);
 
-async function loadTickets() {
-  try {
-    const response = await fetch('http://localhost:5141/api/tickets');
-    
-    if (!response.ok) {
-      throw new Error(`API returned status ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`API returned status ${response.status}`);
+            }
+
+            const tickets = await response.json();
+            allTickets = (Array.isArray(tickets) ? tickets : []).map(
+                (ticket) => normalizeTicket(ticket)
+            );
+
+            // Refreshes the offline cache written by the review page too.
+            try {
+                const cache = {};
+                allTickets.forEach((ticket) => {
+                    cache[ticket.id] = ticket;
+                });
+                localStorage.setItem(storageKey, JSON.stringify(cache));
+            } catch (error) {
+                console.warn("Could not cache tickets locally:", error);
+            }
+        } catch (error) {
+            console.error("Could not load API tickets:", error);
+
+            const cached = getSavedTickets();
+            allTickets = Object.entries(cached).map(([id, ticket]) =>
+                normalizeTicket(ticket, id)
+            );
+        }
+
+        renderTickets();
     }
-    
-    const tickets = await response.json();
-    
-    // THE MISSING LINK: Save the downloaded data to your global list!
-    allTickets = tickets; 
-    
-    // Now render the table (it will use the newly populated allTickets array)
-    renderTickets(); 
-    
-  } catch (error) {
-    console.error("Could not load API tickets:", error);
-  }
-}
+
     searchInput.addEventListener("input", renderTickets);
 
     window.addEventListener("pageshow", loadTickets);
 
-    window.addEventListener("storage", function (event) {
-        if (event.key === storageKey) {
-            loadTickets();
-        }
-    });
+    // New submissions arrive from the citizen app without a page reload.
+    setInterval(loadTickets, 10000);
 
     loadTickets();
 });
