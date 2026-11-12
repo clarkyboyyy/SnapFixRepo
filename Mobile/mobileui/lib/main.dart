@@ -1,9 +1,9 @@
+import 'ticketservice.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/local_account_store.dart';
-import 'data/sample_reports.dart';
 import 'models/issuecategory.dart';
 import 'screen/auth_screen.dart';
 import 'screen/edit_profile.dart';
@@ -135,11 +135,75 @@ class SnapFixShell extends StatefulWidget {
 }
 
 class _SnapFixShellState extends State<SnapFixShell> {
-  final List<IssueReport> _reports = createSampleReports();
+  final List<IssueReport> _reports = [];
+bool _isLoadingReports = true;
+
   final LocalAccountStore _store = LocalAccountStore();
   int _tab = 0;
   int _serial = 14;
   late LocalAccount? _account = widget.initialAccount;
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports() async {
+    try {
+      final tickets = await TicketService.fetchTickets();
+
+      final loadedReports = tickets.map((item) {
+        final ticket = Map<String, dynamic>.from(item as Map);
+
+        final rawDate =
+            ticket['dateSubmitted'] ?? ticket['date_submitted'];
+
+        final createdAt = DateTime.tryParse(
+          rawDate?.toString() ?? '',
+        ) ?? DateTime.now();
+
+        var status = (ticket['status'] ?? 'Submitted').toString();
+
+        if (status.toLowerCase() == 'pending') {
+          status = 'Submitted';
+        }
+
+        return IssueReport(
+          id: (ticket['id'] ?? '').toString(),
+          title: (ticket['title'] ?? 'Untitled').toString(),
+          category: (ticket['category'] ?? 'Others').toString(),
+          description: (ticket['description'] ?? '').toString(),
+          location: (ticket['location'] ?? '').toString(),
+          status: status,
+          createdAt: createdAt,
+        );
+      }).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _reports
+          ..clear()
+          ..addAll(loadedReports);
+        _isLoadingReports = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingReports = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not load saved reports: $error'),
+        ),
+      );
+    }
+  }
+
 
   void _open(Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
@@ -165,16 +229,22 @@ class _SnapFixShellState extends State<SnapFixShell> {
     ];
 
     return Scaffold(
-      body: SafeArea(child: pages[_tab]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) {
-          if (i == 2) {
-            _open(SubmitReportPage(onSubmitted: _addReport));
-          } else {
-            setState(() => _tab = i);
-          }
-        },
+  body: SafeArea(
+    child: _isLoadingReports
+        ? const Center(
+            child: CircularProgressIndicator(),
+          )
+        : pages[_tab],
+  ),
+  bottomNavigationBar: NavigationBar(
+    selectedIndex: _tab,
+    onDestinationSelected: (i) {
+      if (i == 2) {
+        _open(SubmitReportPage(onSubmitted: _addReport));
+      } else {
+        setState(() => _tab = i);
+      }
+    },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

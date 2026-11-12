@@ -1,5 +1,5 @@
+
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
 using AppBackend.Model;
 using AppBackend.Data;
 
@@ -16,7 +16,7 @@ namespace AppBackend.Controllers
             _context = context;
         }
 
-        // GET: api/tickets (Used by your Web Admin HTML to view all tickets)
+        // GET: api/tickets
         [HttpGet]
         public IActionResult GetAllTickets()
         {
@@ -24,8 +24,7 @@ namespace AppBackend.Controllers
             return Ok(tickets);
         }
 
-        // POST: api/tickets (Used by your Flutter app to submit a new ticket)
-        [HttpPost]
+        // POST: api/tickets
         [HttpPost]
         public IActionResult CreateTicket([FromBody] Ticket newTicket)
         {
@@ -36,21 +35,22 @@ namespace AppBackend.Controllers
                     return BadRequest("Invalid ticket data.");
                 }
 
-                newTicket.Status = string.IsNullOrEmpty(newTicket.Status) ? "Submitted" : newTicket.Status;
+                newTicket.Status = string.IsNullOrEmpty(newTicket.Status)
+                    ? "Submitted"
+                    : newTicket.Status;
 
                 _context.Tickets.Add(newTicket);
                 _context.SaveChanges();
-                
+
                 return Ok(newTicket);
             }
             catch (Exception ex)
             {
-                var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                Console.WriteLine($"DB Error: {innerMsg}");
-                
-                // Return plain text so Flutter can instantly read the error message
-                return Content(innerMsg, "text/plain");
+                var error = ex.InnerException?.Message ?? ex.Message;
+                Console.WriteLine($"DB Error: {error}");
+
+                return StatusCode(500, error);
             }
         }
-}
     }
+}
