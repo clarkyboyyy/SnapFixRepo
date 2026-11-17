@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
-    
+
+    const createdEmail = new URLSearchParams(window.location.search).get('email');
+
+    if (createdEmail) {
+        document.getElementById('email').value = createdEmail;
+    }
+
     if (loginForm) {
         loginForm.addEventListener('submit', async function(event) {
             event.preventDefault(); // Stops the page snap
@@ -30,6 +36,14 @@ async function loginUser(email, password) {
             
             // Save the token for the next page
             localStorage.setItem("jwtToken", data.token);
+
+            // Save who signed in so the admin pages show the real account
+            localStorage.setItem("snapfixStaff", JSON.stringify({
+                id: data.id,
+                fullName: data.fullName,
+                email: data.email,
+                role: data.role
+            }));
             
             // Redirect to the tickets page
             window.location.href = "../incnmg/tckts.html"; 

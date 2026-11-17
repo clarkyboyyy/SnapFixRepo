@@ -129,11 +129,18 @@ select {
 
 .sidebar-profile {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
     margin-top: auto;
     padding-top: 20px;
     border-top: 1px solid #41414a;
+}
+
+.profile-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .profile-avatar,
@@ -159,6 +166,31 @@ select {
 .profile-info p {
     font-size: 11px;
     color: #b9bac4;
+}
+
+.sign-out-button {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #41414a;
+    border-radius: 6px;
+    background-color: transparent;
+    color: #d7d8de;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.sign-out-button:hover {
+    background-color: #33343d;
+    border-color: #e85b78;
+    color: #ffffff;
+}
+
+.sign-out-button:focus-visible {
+    outline: 2px solid #e85b78;
+    outline-offset: 2px;
 }
 
 /* ========================================
