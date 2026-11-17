@@ -1,4 +1,5 @@
 import 'ticketservice.dart';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,6 +19,7 @@ import 'screen/update.dart';
 import 'screen/welcome_screen.dart';
 import 'theme/app_theme.dart';
 import 'screen/signup.dart';
+import 'utils/app_layout.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,9 +33,7 @@ Future<void> main() async {
   await LocalAccountStore().signOut();
 
   // 3. Start the app with no initial account, forcing it to the Welcome screen
-  runApp(
-    const SnapFixApp(initialAccount: null),
-  );
+  runApp(const SnapFixApp(initialAccount: null));
 }
 
 final supabase = Supabase.instance.client;
@@ -65,8 +65,52 @@ class SnapFixApp extends StatelessWidget {
     title: 'SnapFix',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
+    builder: _appFrame,
     home: AppEntry(initialAccount: initialAccount),
   );
+
+  /// Keeps the layout fluid on phones and bounds how far it stretches on
+  /// roomier windows. The height always comes from the device, never 873.
+  static Widget _appFrame(BuildContext context, Widget? child) {
+    final media = MediaQuery.of(context);
+    final width = media.size.width.clamp(0.0, AppLayout.maxAppWidth);
+
+    final content = MediaQuery(
+      data: media.copyWith(
+        size: Size(width, media.size.height),
+        // Large Android display sizes must not overflow the chrome; 0.9-1.3
+        // still lets readable text grow.
+        textScaler: media.textScaler.clamp(
+          minScaleFactor: AppLayout.minTextScale,
+          maxScaleFactor: AppLayout.maxTextScale,
+        ),
+      ),
+      child: child ?? const SizedBox.shrink(),
+    );
+
+    if (media.size.width <= AppLayout.maxAppWidth) return content;
+
+    return ColoredBox(
+      color: const Color(0xFFE7E5EC),
+      child: Center(
+        child: SizedBox(
+          width: width,
+          height: media.size.height,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .12),
+                  blurRadius: 26,
+                ),
+              ],
+            ),
+            child: content,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Chooses between the first-run tour and the main app.
@@ -146,12 +190,11 @@ class SnapFixShell extends StatefulWidget {
 
 class _SnapFixShellState extends State<SnapFixShell> {
   final List<IssueReport> _reports = [];
-bool _isLoadingReports = true;
+  bool _isLoadingReports = true;
 
   final LocalAccountStore _store = LocalAccountStore();
   int _tab = 0;
   late LocalAccount? _account = widget.initialAccount;
-
 
   @override
   void initState() {
@@ -189,19 +232,14 @@ bool _isLoadingReports = true;
 
       if (showLoader) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not load saved reports: $error'),
-          ),
+          SnackBar(content: Text('Could not load saved reports: $error')),
         );
       }
     }
   }
 
-
   Future<void> _open(Widget page) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => page));
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
     if (mounted) _loadReports(showLoader: false);
   }
 
@@ -226,23 +264,21 @@ bool _isLoadingReports = true;
     ];
 
     return Scaffold(
-  body: SafeArea(
-    child: _isLoadingReports
-        ? const Center(
-            child: CircularProgressIndicator(),
-          )
-        : pages[_tab],
-  ),
-  bottomNavigationBar: NavigationBar(
-    selectedIndex: _tab,
-    onDestinationSelected: (i) {
-      if (i == 2) {
-        _open(SubmitReportPage(onSubmitted: _addReport));
-      } else {
-        setState(() => _tab = i);
-        _loadReports(showLoader: false);
-      }
-    },
+      body: SafeArea(
+        child: _isLoadingReports
+            ? const Center(child: CircularProgressIndicator())
+            : pages[_tab],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) {
+          if (i == 2) {
+            _open(SubmitReportPage(onSubmitted: _addReport));
+          } else {
+            setState(() => _tab = i);
+            _loadReports(showLoader: false);
+          }
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

@@ -165,96 +165,100 @@ class _SignupPageState extends State<SignupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Create Account')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          children: [
-            const AuthHeading(
-              title: 'Create Account',
-              subtitle:
-                  'Save your reports under one profile so the barangay can '
-                  'follow up with you.',
-            ),
-            const SizedBox(height: 26),
-            AuthField(
-              label: 'Full Name',
-              controller: _name,
-              hint: 'e.g. Mark Oliver Anin ',
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().length < 2) ? 'Enter your name' : null,
-            ),
-            AuthField(
-              label: 'Email Address',
-              controller: _email,
-              hint: 'name@example.com',
-              keyboardType: TextInputType.emailAddress,
-              validator: validateEmail,
-            ),
-            AuthField(
-              label: 'Mobile Number (optional)',
-              controller: _phone,
-              hint: 'e.g. 0917 123 4567',
-              keyboardType: TextInputType.phone,
-              validator: validateMobile,
-            ),
-            AuthField(
-              label: 'Password',
-              controller: _password,
-              hint: 'At least 8 characters',
-              obscure: !_showPassword,
-              validator: validatePassword,
-            ),
-            AuthField(
-              label: 'Confirm Password',
-              controller: _confirm,
-              hint: 'Re-enter your password',
-              obscure: !_showPassword,
-              validator: (v) =>
-                  v == _password.text ? null : 'Passwords do not match',
-            ),
-            Row(
-              children: [
-                Checkbox(
-                  value: _showPassword,
-                  onChanged: (v) => setState(() => _showPassword = v ?? false),
-                  activeColor: AppTheme.pink,
-                ),
-                const Expanded(
-                  child: Text(
-                    'Show passwords',
-                    style: TextStyle(fontSize: 12, color: AppTheme.muted),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (_error != null) ...[
-              AuthErrorBanner(message: _error!),
-              const SizedBox(height: 12),
-            ],
-            FilledButton(
-              onPressed: _busy ? null : _submit,
-              child: _busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Create Account'),
-            ),
-            const SizedBox(height: 14),
-            const Center(
-              child: Text(
-                'By creating an account, you agree to our Terms of Service and Privacy Policy.',
-                style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+      body: SafeArea(
+        top: false,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              const AuthHeading(
+                title: 'Create Account',
+                subtitle:
+                    'Save your reports under one profile so the barangay can '
+                    'follow up with you.',
               ),
-            ),
-          ],
+              const SizedBox(height: 26),
+              AuthField(
+                label: 'Full Name',
+                controller: _name,
+                hint: 'e.g. Mark Oliver Anin ',
+                textCapitalization: TextCapitalization.words,
+                validator: validateFullName,
+              ),
+              AuthField(
+                label: 'Email Address',
+                controller: _email,
+                hint: 'name@example.com',
+                keyboardType: TextInputType.emailAddress,
+                validator: validateEmail,
+              ),
+              AuthField(
+                label: 'Mobile Number (optional)',
+                controller: _phone,
+                hint: 'e.g. 0917 123 4567',
+                keyboardType: TextInputType.phone,
+                validator: validateMobile,
+              ),
+              AuthField(
+                label: 'Password',
+                controller: _password,
+                hint: 'At least 8 characters',
+                obscure: !_showPassword,
+                validator: validatePassword,
+              ),
+              AuthField(
+                label: 'Confirm Password',
+                controller: _confirm,
+                hint: 'Re-enter your password',
+                obscure: !_showPassword,
+                validator: (v) =>
+                    v == _password.text ? null : 'Passwords do not match',
+              ),
+              Row(
+                children: [
+                  Checkbox(
+                    value: _showPassword,
+                    onChanged: (v) =>
+                        setState(() => _showPassword = v ?? false),
+                    activeColor: AppTheme.pink,
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Show passwords',
+                      style: TextStyle(fontSize: 12, color: AppTheme.muted),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (_error != null) ...[
+                AuthErrorBanner(message: _error!),
+                const SizedBox(height: 12),
+              ],
+              FilledButton(
+                onPressed: _busy ? null : _submit,
+                child: _busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Create Account'),
+              ),
+              const SizedBox(height: 14),
+              const Center(
+                child: Text(
+                  'By creating an account, you agree to our Terms of Service and Privacy Policy.',
+                  style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

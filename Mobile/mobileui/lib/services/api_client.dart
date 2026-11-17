@@ -22,7 +22,8 @@ class ApiException implements Exception {
 
 /// Thin JSON wrapper over the SnapFix API so every screen talks to one place.
 class ApiClient {
-  ApiClient({http.Client? client}) : _client = client ?? testClient ?? http.Client();
+  ApiClient({http.Client? client})
+    : _client = client ?? testClient ?? http.Client();
 
   final http.Client _client;
 

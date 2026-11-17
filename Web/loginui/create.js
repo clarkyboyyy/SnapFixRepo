@@ -28,6 +28,16 @@ document.addEventListener("DOMContentLoaded", () => {
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirmPassword").value;
 
+            if (!fullName) {
+                showMessage("Full name is required.", "error");
+                return;
+            }
+
+            if (!/^[A-Za-z ]+$/.test(fullName)) {
+                showMessage("Full name must contain letters and spaces only. Numbers and special characters are not allowed.", "error");
+                return;
+            }
+
             if (password !== confirmPassword) {
                 showMessage("Passwords do not match.", "error");
                 return;

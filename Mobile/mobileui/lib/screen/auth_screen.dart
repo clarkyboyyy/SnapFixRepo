@@ -16,51 +16,70 @@ class AuthScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(child: Brand(logoSize: 52)),
-              const SizedBox(height: 34),
-              const Center(
-                child: Text(
-                  'Welcome to SnapFix',
-                  style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Centered on tall phones like the reference design, but the
+            // same column scrolls once the available height runs out.
+            final minHeight = (constraints.maxHeight - 48).clamp(
+              0.0,
+              double.infinity,
+            );
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: minHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Center(child: Brand(logoSize: 52)),
+                    const SizedBox(height: 34),
+                    const Center(
+                      child: Text(
+                        'Welcome to SnapFix',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 23,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(
+                      child: Text(
+                        'Connect your account to keep every report in one '
+                        'place across your devices.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppTheme.muted, height: 1.45),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () =>
+                          _open(context, SignupPage(onSignedIn: onSignedIn)),
+                      child: const Text('Create Account'),
+                    ),
+                    const SizedBox(height: 6),
+                    TextButton(
+                      onPressed: () =>
+                          _open(context, LoginPage(onSignedIn: onSignedIn)),
+                      child: const Text('Already have an account? Log In'),
+                    ),
+                    const SizedBox(height: 18),
+                    const Center(
+                      child: Text(
+                        'SnapFix keeps your reports on this device until a '
+                        'barangay backend is connected.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              const Center(
-                child: Text(
-                  'Connect your account to keep every report in one place '
-                  'across your devices.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.muted, height: 1.45),
-                ),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () =>
-                    _open(context, SignupPage(onSignedIn: onSignedIn)),
-                child: const Text('Create Account'),
-              ),
-              const SizedBox(height: 6),
-              TextButton(
-                onPressed: () =>
-                    _open(context, LoginPage(onSignedIn: onSignedIn)),
-                child: const Text('Already have an account? Log In'),
-              ),
-              const SizedBox(height: 18),
-              const Center(
-                child: Text(
-                  'SnapFix keeps your reports on this device until a barangay '
-                  'backend is connected.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -186,6 +205,15 @@ String? validateEmail(String? value) {
   if (text.isEmpty) return 'Enter your email';
   if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(text)) {
     return 'Enter a valid email address';
+  }
+  return null;
+}
+
+String? validateFullName(String? value) {
+  final text = value?.trim() ?? '';
+  if (text.isEmpty) return 'Full name is required.';
+  if (!RegExp(r'^[A-Za-z ]+$').hasMatch(text)) {
+    return 'Full name must contain letters and spaces only. Numbers and special characters are not allowed.';
   }
   return null;
 }

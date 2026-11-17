@@ -26,8 +26,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
-  if (!window.Create(L"mobileui", origin, size)) {
+  // Phone-sized first window so the desktop preview matches the 393 x 873
+  // Android reference; the app frame keeps that width when maximized.
+  Win32Window::Size size(440, 940);
+  if (!window.Create(L"SnapFix", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

@@ -119,82 +119,87 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Log In')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          children: [
-            const AuthHeading(
-              title: 'Welcome Back',
-              subtitle: 'Log in to pick up the reports you have already filed.',
-            ),
-            const SizedBox(height: 26),
-            AuthField(
-              label: 'Email Address',
-              controller: _email,
-              hint: 'name@example.com',
-              keyboardType: TextInputType.emailAddress,
-              validator: validateEmail,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Password',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
+      body: SafeArea(
+        top: false,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              const AuthHeading(
+                title: 'Welcome Back',
+                subtitle:
+                    'Log in to pick up the reports you have already filed.',
+              ),
+              const SizedBox(height: 26),
+              AuthField(
+                label: 'Email Address',
+                controller: _email,
+                hint: 'name@example.com',
+                keyboardType: TextInputType.emailAddress,
+                validator: validateEmail,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Password',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 7),
-                  TextFormField(
-                    controller: _password,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      hintText: 'Your password',
-                      suffixIcon: IconButton(
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                        icon: Icon(
-                          _obscure
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          size: 19,
+                    const SizedBox(height: 7),
+                    TextFormField(
+                      controller: _password,
+                      obscureText: _obscure,
+                      decoration: InputDecoration(
+                        hintText: 'Your password',
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => _obscure = !_obscure),
+                          icon: Icon(
+                            _obscure
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            size: 19,
+                          ),
                         ),
                       ),
+                      validator: validatePassword,
                     ),
-                    validator: validatePassword,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            if (_error != null) ...[
-              AuthErrorBanner(message: _error!),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+              if (_error != null) ...[
+                AuthErrorBanner(message: _error!),
+                const SizedBox(height: 12),
+              ],
+              FilledButton(
+                onPressed: _busy ? null : _submit,
+                child: _busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Log In'),
+              ),
+              const SizedBox(height: 14),
+              const Center(
+                child: Text(
+                  'By logging in, you agree to our Terms of Service and Privacy Policy.',
+                  style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+                ),
+              ),
             ],
-            FilledButton(
-              onPressed: _busy ? null : _submit,
-              child: _busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Log In'),
-            ),
-            const SizedBox(height: 14),
-            const Center(
-              child: Text(
-                'By logging in, you agree to our Terms of Service and Privacy Policy.',
-                style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

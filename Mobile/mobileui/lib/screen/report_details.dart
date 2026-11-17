@@ -82,118 +82,121 @@ class _ReportDetailsPageState extends State<ReportDetailsPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        children: [
-          Text(
-            report.id,
-            style: const TextStyle(color: AppTheme.muted, fontSize: 11),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            report.title,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: StatusPill(status: report.status),
-          ),
-          if (hasPhoto) ...[
-            const SizedBox(height: 18),
-            ReportPhoto(report: report),
-          ],
-          const SizedBox(height: 20),
-          _InfoCard(
-            title: 'ISSUE INFORMATION',
-            children: [
-              _InfoRow(
-                icon: IssueCategory.byLabel(report.category).icon,
-                label: 'Category',
-                value: report.category,
-              ),
-              _InfoRow(
-                icon: Icons.description_outlined,
-                label: 'Description',
-                value: report.description,
-              ),
-              _InfoRow(
-                icon: Icons.location_on_outlined,
-                label: 'Location',
-                value: report.location,
-              ),
-              _InfoRow(
-                icon: Icons.schedule_outlined,
-                label: 'Reported',
-                value: _formatDateTime(report.createdAt),
-              ),
-              if (report.assignedDepartment != null)
-                _InfoRow(
-                  icon: Icons.apartment_outlined,
-                  label: 'Assigned Department',
-                  value: report.assignedDepartment!,
-                ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Text(
+              report.id,
+              style: const TextStyle(color: AppTheme.muted, fontSize: 11),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              report.title,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: StatusPill(status: report.status),
+            ),
+            if (hasPhoto) ...[
+              const SizedBox(height: 18),
+              ReportPhoto(report: report),
             ],
-          ),
-          const SizedBox(height: 14),
-          _ProgressCard(report: report),
-          const SizedBox(height: 14),
-          Card(
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const Icon(Icons.timeline, color: AppTheme.pink),
-              title: const Text(
-                'Report Progress',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: const Text('View report tracking history'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ReportProgressPage(report: report),
+            const SizedBox(height: 20),
+            _InfoCard(
+              title: 'ISSUE INFORMATION',
+              children: [
+                _InfoRow(
+                  icon: IssueCategory.byLabel(report.category).icon,
+                  label: 'Category',
+                  value: report.category,
+                ),
+                _InfoRow(
+                  icon: Icons.description_outlined,
+                  label: 'Description',
+                  value: report.description,
+                ),
+                _InfoRow(
+                  icon: Icons.location_on_outlined,
+                  label: 'Location',
+                  value: report.location,
+                ),
+                _InfoRow(
+                  icon: Icons.schedule_outlined,
+                  label: 'Reported',
+                  value: _formatDateTime(report.createdAt),
+                ),
+                if (report.assignedDepartment != null)
+                  _InfoRow(
+                    icon: Icons.apartment_outlined,
+                    label: 'Assigned Department',
+                    value: report.assignedDepartment!,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _ProgressCard(report: report),
+            const SizedBox(height: 14),
+            Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                leading: const Icon(Icons.timeline, color: AppTheme.pink),
+                title: const Text(
+                  'Report Progress',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: const Text('View report tracking history'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReportProgressPage(report: report),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const Icon(Icons.forum_outlined, color: AppTheme.pink),
-              title: const Text(
-                'Ask the Admin',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                report.hasUnreadAdmin
-                    ? '${report.unreadFromAdmin} new reply from the barangay admin'
-                    : 'Ask about the status of this report',
-              ),
-              trailing: report.hasUnreadAdmin
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.softPink,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${report.unreadFromAdmin} new',
-                        style: const TextStyle(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.pink,
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                leading: const Icon(Icons.forum_outlined, color: AppTheme.pink),
+                title: const Text(
+                  'Ask the Admin',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  report.hasUnreadAdmin
+                      ? '${report.unreadFromAdmin} new reply from the barangay admin'
+                      : 'Ask about the status of this report',
+                ),
+                trailing: report.hasUnreadAdmin
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                    )
-                  : const Icon(Icons.chevron_right),
-              onTap: _openInquiry,
+                        decoration: BoxDecoration(
+                          color: AppTheme.softPink,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${report.unreadFromAdmin} new',
+                          style: const TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.pink,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.chevron_right),
+                onTap: _openInquiry,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

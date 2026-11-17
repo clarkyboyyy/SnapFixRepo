@@ -86,116 +86,119 @@ class _ReportProgressPageState extends State<ReportProgressPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Report Progress')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
-          Text(
-            report.title,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            report.id,
-            style: const TextStyle(color: AppTheme.muted, fontSize: 11),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.softPink,
-              borderRadius: BorderRadius.circular(18),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          children: [
+            Text(
+              report.title,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Completion',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12.5,
+            const SizedBox(height: 5),
+            Text(
+              report.id,
+              style: const TextStyle(color: AppTheme.muted, fontSize: 11),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.softPink,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Completion',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12.5,
+                          ),
                         ),
                       ),
+                      Text(
+                        '${report.progress}%',
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: report.progress / 100,
+                      minHeight: 8,
+                      backgroundColor: Colors.white,
+                      valueColor: AlwaysStoppedAnimation(color),
                     ),
+                  ),
+                  if (report.assignedDepartment != null) ...[
+                    const SizedBox(height: 10),
                     Text(
-                      '${report.progress}%',
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
+                      'Assigned to ${report.assignedDepartment}',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.muted,
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(2, 22, 2, 10),
+              child: SectionLabel('TRACKING HISTORY'),
+            ),
+            if (_history.isNotEmpty)
+              for (var i = 0; i < _history.length; i++)
+                _TimelineRow(
+                  label: _history[i].status ?? 'Progress update',
+                  detail: _historyDetail(_history[i]),
+                  done: true,
+                  isLast: i == _history.length - 1,
+                )
+            else
+              for (var i = 0; i < _stages.length; i++)
+                _TimelineRow(
+                  label: _stages[i],
+                  detail: _details[i],
+                  done: i <= stage,
+                  isLast: i == _stages.length - 1,
                 ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: report.progress / 100,
-                    minHeight: 8,
-                    backgroundColor: Colors.white,
-                    valueColor: AlwaysStoppedAnimation(color),
-                  ),
-                ),
-                if (report.assignedDepartment != null) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    'Assigned to ${report.assignedDepartment}',
+            const SizedBox(height: 18),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.help_outline, size: 16, color: AppTheme.pink),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    report.isResolved
+                        ? 'Resolved on ${report.location}. Reopen a report if the '
+                              'issue returns.'
+                        : 'Questions and replies stay attached to this report, so '
+                              'the admin always sees the full history.',
                     style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 11.5,
+                      height: 1.4,
                       color: AppTheme.muted,
                     ),
                   ),
-                ],
+                ),
               ],
             ),
-          ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(2, 22, 2, 10),
-            child: SectionLabel('TRACKING HISTORY'),
-          ),
-          if (_history.isNotEmpty)
-            for (var i = 0; i < _history.length; i++)
-              _TimelineRow(
-                label: _history[i].status ?? 'Progress update',
-                detail: _historyDetail(_history[i]),
-                done: true,
-                isLast: i == _history.length - 1,
-              )
-          else
-            for (var i = 0; i < _stages.length; i++)
-              _TimelineRow(
-                label: _stages[i],
-                detail: _details[i],
-                done: i <= stage,
-                isLast: i == _stages.length - 1,
-              ),
-          const SizedBox(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.help_outline, size: 16, color: AppTheme.pink),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  report.isResolved
-                      ? 'Resolved on ${report.location}. Reopen a report if the '
-                            'issue returns.'
-                      : 'Questions and replies stay attached to this report, so '
-                            'the admin always sees the full history.',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    height: 1.4,
-                    color: AppTheme.muted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(20, 0, 20, 14),

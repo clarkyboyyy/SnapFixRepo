@@ -481,20 +481,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return false;
         }
 
-        if (
-            !Number.isFinite(progressValue) ||
-            progressValue < 0 ||
-            progressValue > 100
-        ) {
-            showMessage(
-                "Progress must be a number between 0 and 100.",
-                "error"
-            );
-
-            if (elements.progress) elements.progress.focus();
-
-            return false;
-        }
 
         const note = elements.progressNote
             ? elements.progressNote.value.trim()
