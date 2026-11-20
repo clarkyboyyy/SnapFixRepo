@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
 
@@ -7,17 +8,36 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('email').value = createdEmail;
     }
 
+    // Show / Hide Password
+    document.querySelectorAll('.toggle-password').forEach((button) => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.target);
+
+            if (!input) return;
+
+            const show = input.type === 'password';
+
+            input.type = show ? 'text' : 'password';
+            button.textContent = show ? 'Hide' : 'Show';
+            button.setAttribute('aria-pressed', String(show));
+            button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+
+            input.focus();
+        });
+    });
+
     if (loginForm) {
         loginForm.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Stops the page snap
-            
-            const email = document.getElementById('email').value;
+            event.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            
+
             await loginUser(email, password);
         });
     }
 });
+
 
 async function loginUser(email, password) {
     try {
@@ -33,24 +53,23 @@ async function loginUser(email, password) {
 
         if (response.ok) {
             console.log("Logged in successfully!", data.token);
-            
-            // Save the token for the next page
+
             localStorage.setItem("jwtToken", data.token);
 
-            // Save who signed in so the admin pages show the real account
-            localStorage.setItem("snapfixStaff", JSON.stringify({
+            localStorage.setItem("snapFixStaff", JSON.stringify({
                 id: data.id,
                 fullName: data.fullName,
                 email: data.email,
                 role: data.role
             }));
-            
-            // Redirect to the tickets page
-            window.location.href = "../incnmg/tckts.html"; 
+
+            window.location.href = "../incnmg/tckts.html";
+
         } else {
             console.error("Login failed:", data.message);
             alert("Login failed: " + data.message);
         }
+
     } catch (error) {
         console.error("Connection error:", error);
         alert("Cannot connect to server. Is your C# back-end running?");
