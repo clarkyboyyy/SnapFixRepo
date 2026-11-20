@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -181,6 +180,7 @@
                             </select>
                         </div>
 
+                        <!-- ADMIN NOTES -->
                         <div class="form-group">
                             <label for="admin-notes">Admin Notes</label>
 
@@ -188,9 +188,15 @@
                                 id="admin-notes"
                                 rows="4"
                                 placeholder="Add internal notes or instructions..."
+                                maxlength="200"
                             ></textarea>
-                       
 
+                            <div class="character-count">
+                                <span id="admin-notes-count">0</span>/200 characters
+                            </div>
+                        </div>
+
+                        <!-- PROGRESS UPDATE NOTE -->
                         <div class="form-group">
                             <label for="progress-note">Progress Update Note</label>
 
@@ -198,7 +204,12 @@
                                 id="progress-note"
                                 rows="2"
                                 placeholder="Describe this update for the resident's tracking history..."
+                                maxlength="200"
                             ></textarea>
+
+                            <div class="character-count">
+                                <span id="progress-note-count">0</span>/200 characters
+                            </div>
                         </div>
 
                         <div class="assigned-info">

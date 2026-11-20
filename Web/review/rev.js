@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
 
     // --------------------------------
@@ -69,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "SF-1026": {
             id: "SF-1026",
             title: "Garbage Collection",
-            location: "Pasig City",
+            location: "Pasig City",  
             status: "Pending",
             dateSubmitted: "October 25, 2026",
             description:
@@ -226,8 +225,10 @@ document.addEventListener("DOMContentLoaded", function () {
         status: document.getElementById("ticket-status"),
         department: document.getElementById("ticket-department"),
         notes: document.getElementById("admin-notes"),
-        progress: document.getElementById("ticket-progress"),
         progressNote: document.getElementById("progress-note"),
+        notesCount: document.getElementById("admin-notes-count"),
+        progress: document.getElementById("ticket-progress"),
+        progressNoteCount: document.getElementById("progress-note-count"),
 
         assignment: document.getElementById("current-assignment"),
 
@@ -245,6 +246,36 @@ document.addEventListener("DOMContentLoaded", function () {
         messageForm: document.getElementById("message-form"),
         messageInput: document.getElementById("message-input")
     };
+
+
+    // --------------------------------
+    // CHARACTER COUNTERS AND LIMITS
+    // --------------------------------
+
+    function updateAdminNotesCount() {
+        if (!elements.notes || !elements.notesCount) return;
+
+        elements.notesCount.textContent = elements.notes.value.length;
+    }
+
+    function updateProgressNoteCount() {
+        if (!elements.progressNote || !elements.progressNoteCount) return;
+
+        elements.progressNoteCount.textContent = elements.progressNote.value.length;
+    }
+
+  
+    if (elements.notes) {
+        elements.notes.maxLength = 200;
+        elements.notes.addEventListener("input", updateAdminNotesCount);
+        updateAdminNotesCount();
+    }
+
+    if (elements.progressNote) {
+        elements.progressNote.maxLength = 200;
+        elements.progressNote.addEventListener("input", updateProgressNoteCount);
+        updateProgressNoteCount();
+    }
 
     // --------------------------------
     // PHOTO DISPLAY
@@ -343,16 +374,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 ticket.description || "No description provided.";
         }
 
-        if (elements.status) {
-            elements.status.value = ticket.status;
+        if (elements.notes) {
+            elements.notes.value = (ticket.notes || "").slice(0, 250);
+            updateAdminNotesCount();
         }
 
         if (elements.department) {
             elements.department.value = ticket.department || "";
         }
 
-        if (elements.notes) {
-            elements.notes.value = ticket.notes || "";
+        if (elements.progressNote) {
+            elements.progressNote.value = (ticket.progressNote || "").slice(0, 250);
+            updateProgressNoteCount();
         }
 
         if (elements.progress) {
@@ -481,9 +514,8 @@ document.addEventListener("DOMContentLoaded", function () {
             return false;
         }
 
-
         const note = elements.progressNote
-            ? elements.progressNote.value.trim()
+            ? elements.progressNote.value.trim().slice(0, 250)
             : "";
 
         try {
@@ -496,7 +528,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     status: selectedStatus,
                     assignedDepartment: selectedDepartment,
                     adminNotes: elements.notes
-                        ? elements.notes.value.trim()
+                        ? elements.notes.value.trim().slice(0, 250)
                         : "",
                     progress: progressValue,
                     note: note || null
@@ -519,6 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (elements.progressNote) {
                 elements.progressNote.value = "";
+                updateProgressNoteCount();
             }
 
             // Cache the confirmed server state.
