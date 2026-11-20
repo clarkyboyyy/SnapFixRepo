@@ -331,3 +331,75 @@ a:focus-visible {
         padding: 32px 22px;
     }
 }
+
+/* Create account form */
+.field-hint {
+    margin: 0;
+    color: #81828a;
+    font-size: 10.5px;
+    line-height: 1.5;
+}
+
+.form-message {
+    display: none;
+    margin: 14px 0 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.form-message.is-visible {
+    display: block;
+}
+
+.form-message.is-info {
+    color: #81828a;
+}
+
+.form-message.is-error {
+    color: #b7224a;
+}
+
+.form-message.is-success {
+    color: #1d7a4a;
+}
+
+.login-button:disabled {
+    cursor: progress;
+    opacity: 0.65;
+}
+
+/* Show / hide password toggle */
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-right: 62px;
+}
+
+.toggle-password {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    padding: 6px 8px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #d83e66;
+    cursor: pointer;
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 650;
+}
+
+.toggle-password:hover {
+    background: #f7e9ee;
+}
+
+.toggle-password:focus-visible {
+    outline: 3px solid #f18aa3;
+    outline-offset: 1px;
+}
+
+

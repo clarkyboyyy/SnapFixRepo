@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/issuecategory.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_layout.dart';
 import '../widget/brand.dart';
 import '../widget/page_header.dart';
 import '../widget/report_card.dart';
@@ -22,20 +23,21 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     int count(String status) => reports.where((r) => r.status == status).length;
+    final gutter = AppLayout.gutter(context);
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 20),
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 14, 20, 12),
-          child: Brand(showTagline: true),
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: SectionLabel('YOUR REPORT OVERVIEW'),
+        Padding(
+          padding: EdgeInsets.fromLTRB(gutter, 14, gutter, 12),
+          child: const Brand(showTagline: true),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 18),
+          padding: EdgeInsets.symmetric(horizontal: gutter),
+          child: const SectionLabel('YOUR REPORT OVERVIEW'),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(gutter, 10, gutter, 18),
           child: Row(
             children: [
               _Stat(
@@ -59,7 +61,7 @@ class HomePage extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: gutter),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(

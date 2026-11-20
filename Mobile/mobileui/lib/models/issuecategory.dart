@@ -172,8 +172,7 @@ class InquiryMessage {
     final sender = (json['senderType'] ?? json['sender_type'] ?? '')
         .toString()
         .toLowerCase();
-    final rawDate =
-        json['dateSent'] ?? json['date_sent'] ?? json['createdAt'];
+    final rawDate = json['dateSent'] ?? json['date_sent'] ?? json['createdAt'];
     final rawId = json['id'];
 
     return InquiryMessage(

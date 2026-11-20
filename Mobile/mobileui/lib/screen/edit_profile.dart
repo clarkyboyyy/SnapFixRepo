@@ -90,66 +90,72 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profile')),
-      body: Form(
-        key: _form,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          children: [
-            const AuthHeading(
-              title: 'Your details',
-              subtitle:
-                  'The barangay uses these to reach you about a report you '
-                  'filed.',
-            ),
-            const SizedBox(height: 26),
-            AuthField(
-              label: 'Full Name',
-              controller: _name,
-              hint: 'e.g. Zyra Malik',
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().length < 2) ? 'Enter your name' : null,
-            ),
-            _ReadOnlyField(label: 'Email Address', value: widget.account.email),
-            AuthField(
-              label: 'Mobile Number (optional)',
-              controller: _mobile,
-              hint: 'e.g. 0917 123 4567',
-              keyboardType: TextInputType.phone,
-              validator: validateMobile,
-            ),
-            AuthField(
-              label: 'Address (optional)',
-              controller: _address,
-              hint: 'e.g. 12 Rizal Avenue, Purok 3',
-              textCapitalization: TextCapitalization.words,
-            ),
-            if (_error != null) ...[
-              AuthErrorBanner(message: _error!),
-              const SizedBox(height: 12),
-            ],
-            FilledButton(
-              onPressed: _busy ? null : _save,
-              child: _busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Save changes'),
-            ),
-            const SizedBox(height: 14),
-            const Center(
-              child: Text(
-                'Saved to your account. Leave a field blank to clear it.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+      body: SafeArea(
+        top: false,
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              const AuthHeading(
+                title: 'Your details',
+                subtitle:
+                    'The barangay uses these to reach you about a report you '
+                    'filed.',
               ),
-            ),
-          ],
+              const SizedBox(height: 26),
+              AuthField(
+                label: 'Full Name',
+                controller: _name,
+                hint: 'e.g. Zyra Malik',
+                textCapitalization: TextCapitalization.words,
+                validator: validateFullName,
+              ),
+              _ReadOnlyField(
+                label: 'Email Address',
+                value: widget.account.email,
+              ),
+              AuthField(
+                label: 'Mobile Number (optional)',
+                controller: _mobile,
+                hint: 'e.g. 0917 123 4567',
+                keyboardType: TextInputType.phone,
+                validator: validateMobile,
+              ),
+              AuthField(
+                label: 'Address (optional)',
+                controller: _address,
+                hint: 'e.g. 12 Rizal Avenue, Purok 3',
+                textCapitalization: TextCapitalization.words,
+              ),
+              if (_error != null) ...[
+                AuthErrorBanner(message: _error!),
+                const SizedBox(height: 12),
+              ],
+              FilledButton(
+                onPressed: _busy ? null : _save,
+                child: _busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Save changes'),
+              ),
+              const SizedBox(height: 14),
+              const Center(
+                child: Text(
+                  'Saved to your account. Leave a field blank to clear it.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10.5, color: AppTheme.muted),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

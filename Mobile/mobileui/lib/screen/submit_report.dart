@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 import '../ticketservice.dart';
 
 import 'package:flutter/material.dart';
@@ -12,9 +14,8 @@ import '../widget/page_header.dart';
 /// The "New Report" form: what the issue is, where it is, and an optional
 /// photo. Builds an [IssueReport] and hands it to [onSubmitted]; the caller
 /// owns persistence and navigation.
-/// 
+///
 final newId = 'SF-${DateTime.now().millisecondsSinceEpoch}';
-
 
 class SubmitReportPage extends StatefulWidget {
   const SubmitReportPage({super.key, required this.onSubmitted});
@@ -45,15 +46,54 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     super.dispose();
   }
 
+  static const int _maxPhotoBytes = 5 * 1024 * 1024;
+  static const Set<String> _allowedPhotoExtensions = {'.jpg', '.jpeg', '.png'};
+
+  Future<String?> _validatePhoto(XFile file) async {
+    final name = file.name.toLowerCase();
+    final extension = name.contains('.')
+        ? name.substring(name.lastIndexOf('.'))
+        : '';
+    final mime = (file.mimeType ?? '').toLowerCase();
+    final formatAllowed =
+        _allowedPhotoExtensions.contains(extension) ||
+        mime == 'image/jpeg' ||
+        mime == 'image/png';
+
+    if (!formatAllowed) {
+      return 'Only JPG, JPEG, and PNG images are allowed.';
+    }
+
+    final int size;
+    try {
+      size = await file.length();
+    } on Exception {
+      return 'Please select a valid image.';
+    }
+
+    if (size <= 0) return 'Please select a valid image.';
+    if (size > _maxPhotoBytes) return 'Photo size must not exceed 5 MB.';
+
+    return null;
+  }
+
   Future<void> _pickPhoto(ImageSource source) async {
+    if (_picking) return;
     setState(() => _picking = true);
     try {
-      final file = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-        maxWidth: 1600,
-      );
-      if (file != null) setState(() => _photo = File(file.path));
+      final file = await _picker.pickImage(source: source);
+      if (file == null) return;
+
+      final error = await _validatePhoto(file);
+      if (error != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error)));
+        }
+        return;
+      }
+
+      if (mounted) setState(() => _photo = File(file.path));
     } on Exception {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,11 +125,15 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       String? photoPath = _photo?.path;
 
       // 1. Send the report with a 10-second timeout so it doesn't hang forever
-      await TicketService.submitTicket(newId,title, location, description)
-          .timeout(const Duration(seconds: 10));
-          if (mounted) {
-          Navigator.pop(context);
-}
+      await TicketService.submitTicket(
+        newId,
+        title,
+        location,
+        description,
+      ).timeout(const Duration(seconds: 10));
+      if (mounted) {
+        Navigator.pop(context);
+      }
 
       // 2. Build the IssueReport instance
       final report = IssueReport(
@@ -116,9 +160,8 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Submission failed: $e")),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Submission failed: $e")));
     } finally {
       // 4. CRUCIAL: Always unlock the UI whether it succeeds or fails
       if (mounted) {
@@ -146,166 +189,223 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
           ),
         ),
       ),
-      body: Form(
-        key: _form,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SectionLabel('NEW REPORT'),
-              const SizedBox(height: 12),
-              _FormCard(
-                title: 'What’s the issue?',
-                children: [
-                  const _FieldLabel('Category'),
-                  const SizedBox(height: 8),
-                  FormField<IssueCategory>(
-                    initialValue: _category,
-                    builder: (state) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _CategoryPicker(
-                            selected: state.value,
-                            hasError: state.hasError,
-                            onSelected: (c) {
-                              state.didChange(c);
-                              setState(() => _category = c);
-                            },
-                          ),
-                          if (state.hasError)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                state.errorText ?? 'Choose a category',
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  color: Color(0xFFD93B3B),
+      body: SafeArea(
+        top: false,
+        child: Form(
+          key: _form,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SectionLabel('NEW REPORT'),
+                const SizedBox(height: 12),
+                _FormCard(
+                  title: 'What’s the issue?',
+                  children: [
+                    const _FieldLabel('Category'),
+                    const SizedBox(height: 8),
+                    FormField<IssueCategory>(
+                      initialValue: _category,
+                      builder: (state) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _CategoryPicker(
+                              selected: state.value,
+                              hasError: state.hasError,
+                              onSelected: (c) {
+                                state.didChange(c);
+                                setState(() => _category = c);
+                              },
+                            ),
+                            if (state.hasError)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(
+                                  state.errorText ?? 'Choose a category',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: Color(0xFFD93B3B),
+                                  ),
                                 ),
                               ),
+                          ],
+                        );
+                      },
+                      validator: (v) => v == null ? 'Choose a category' : null,
+                    ),
+                    const SizedBox(height: 14),
+                    const _FieldLabel('Issue title'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _title,
+                      maxLength: 10,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Broken streetlight on Rizal Ave',
+                        counterStyle: TextStyle(
+                          fontSize: 10.5,
+                          color: AppTheme.muted,
+                        ),
+                      ),
+                      validator: (v) {
+                        final title = v?.trim() ?? '';
+                        if (title.isEmpty) return 'Issue title is required.';
+                        if (title.length > 10) {
+                          return 'Issue title must not exceed 10 characters.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    const _FieldLabel('Description'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _description,
+                      maxLines: 4,
+                      maxLength: 50,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText:
+                            'What exactly is wrong, and since when? Add anything '
+                            'that helps the crew find it.',
+                        counterStyle: TextStyle(
+                          fontSize: 10.5,
+                          color: AppTheme.muted,
+                        ),
+                      ),
+                      validator: (v) {
+                        final description = v ?? '';
+                        if (description.trim().isEmpty) {
+                          return 'Description is required.';
+                        }
+                        if (description.length > 50) {
+                          return 'Description must not exceed 50 characters.';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _FormCard(
+                  title: 'Location',
+                  children: [
+                    TextFormField(
+                      controller: _location,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        hintText: 'Street, purok or nearest landmark',
+                        prefixIcon: Icon(
+                          Icons.location_on_outlined,
+                          color: AppTheme.pink,
+                        ),
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Enter where the issue is'
+                          : null,
+                    ),
+                    const SizedBox(height: 8),
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 14,
+                          color: AppTheme.muted,
+                        ),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Reports are routed to your barangay hall.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.muted,
                             ),
-                        ],
-                      );
-                    },
-                    validator: (v) => v == null ? 'Choose a category' : null,
-                  ),
-                  const SizedBox(height: 14),
-                  const _FieldLabel('Issue title'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _title,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. Broken streetlight on Rizal Ave',
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Give the issue a short title'
-                        : null,
-                  ),
-                  const SizedBox(height: 14),
-                  const _FieldLabel('Description'),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _description,
-                    maxLines: 4,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText:
-                          'What exactly is wrong, and since when? Add anything '
-                          'that helps the crew find it.',
-                    ),
-                    validator: (v) => (v == null || v.trim().length < 10)
-                        ? 'Describe the issue in at least a few words'
-                        : null,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _FormCard(
-                title: 'Location',
-                children: [
-                  TextFormField(
-                    controller: _location,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      hintText: 'Street, purok or nearest landmark',
-                      prefixIcon: Icon(
-                        Icons.location_on_outlined,
-                        color: AppTheme.pink,
-                      ),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Enter where the issue is'
-                        : null,
-                  ),
-                  const SizedBox(height: 8),
-                  const Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 14, color: AppTheme.muted),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'Reports are routed to your barangay hall.',
-                          style: TextStyle(fontSize: 11, color: AppTheme.muted),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              _FormCard(
-                title: 'Add a photo',
-                subtitle:
-                    'Optional, but reports with a photo are triaged faster.',
-                children: [
-                  _PhotoTile(
-                    photo: _photo,
-                    busy: _picking,
-                    onTap: () => _pickPhoto(ImageSource.camera),
-                    onRemove: () => setState(() => _photo = null),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _picking
-                              ? null
-                              : () => _pickPhoto(ImageSource.camera),
-                          icon: const Icon(
-                            Icons.photo_camera_outlined,
-                            size: 18,
                           ),
-                          label: const Text('Camera'),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _picking
-                              ? null
-                              : () => _pickPhoto(ImageSource.gallery),
-                          icon: const Icon(
-                            Icons.photo_library_outlined,
-                            size: 18,
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _FormCard(
+                  title: 'Add a photo',
+                  subtitle:
+                      'Optional, but reports with a photo are triaged faster.',
+                  children: [
+                    _PhotoTile(
+                      photo: _photo,
+                      busy: _picking,
+                      onTap: () => _pickPhoto(ImageSource.camera),
+                      onRemove: () => setState(() => _photo = null),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _picking
+                                ? null
+                                : () => _pickPhoto(ImageSource.camera),
+                            icon: const Icon(
+                              Icons.photo_camera_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('Camera'),
                           ),
-                          label: const Text('Gallery'),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _picking
+                                ? null
+                                : () => _pickPhoto(ImageSource.gallery),
+                            icon: const Icon(
+                              Icons.photo_library_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('Gallery'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Row(
+                      children: [
+                        Icon(
+                          Icons.image_outlined,
+                          size: 14,
+                          color: AppTheme.muted,
+                        ),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Supported formats: JPG, PNG | Maximum size: 5 MB',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         child: FilledButton.icon(
-          onPressed: _isSubmitting ? null : _submit, // <-- Disables button and prevents freeze
+          onPressed: _isSubmitting
+              ? null
+              : _submit, // <-- Disables button and prevents freeze
           icon: _isSubmitting
               ? const SizedBox(
                   width: 19,
@@ -397,33 +497,37 @@ class _CategoryPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BoxConstraints == BoxConstraints ? Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final category in IssueCategory.values)
-          ChoiceChip(
-            selected: selected == category,
-            onSelected: (_) => onSelected(category),
-            avatar: Icon(
-              category.icon,
-              size: 16,
-              color: selected == category ? AppTheme.pink : AppTheme.muted,
-            ),
-            label: Text(category.label),
-            showCheckmark: false,
-            selectedColor: AppTheme.softPink,
-            backgroundColor: Colors.white,
-            side: BorderSide(
-              color: selected == category
-                  ? AppTheme.pink
-                  : hasError
-                  ? const Color(0xFFD93B3B)
-                  : AppTheme.border,
-            ),
-          ),
-      ],
-    ) : const Wrap();
+    return BoxConstraints == BoxConstraints
+        ? Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final category in IssueCategory.values)
+                ChoiceChip(
+                  selected: selected == category,
+                  onSelected: (_) => onSelected(category),
+                  avatar: Icon(
+                    category.icon,
+                    size: 16,
+                    color: selected == category
+                        ? AppTheme.pink
+                        : AppTheme.muted,
+                  ),
+                  label: Text(category.label),
+                  showCheckmark: false,
+                  selectedColor: AppTheme.softPink,
+                  backgroundColor: Colors.white,
+                  side: BorderSide(
+                    color: selected == category
+                        ? AppTheme.pink
+                        : hasError
+                        ? const Color(0xFFD93B3B)
+                        : AppTheme.border,
+                  ),
+                ),
+            ],
+          )
+        : const Wrap();
   }
 }
 

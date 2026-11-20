@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/app_layout.dart';
 
 /// Three-page tour of the report flow: photograph, locate, track.
 class OnboardingScreen extends StatefulWidget {
@@ -52,6 +53,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _page = i),
                 itemBuilder: (_, i) {
                   final s = _steps[i];
+                  final heroSize = AppLayout.fitWidth(context, 168, .43);
 
                   return LayoutBuilder(
                     builder: (context, constraints) => SingleChildScrollView(
@@ -64,15 +66,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: 168,
-                              height: 168,
+                              width: heroSize,
+                              height: heroSize,
                               decoration: const BoxDecoration(
                                 color: AppTheme.softPink,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 s.icon,
-                                size: 74,
+                                size: heroSize * .44,
                                 color: AppTheme.pink,
                               ),
                             ),

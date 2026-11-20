@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/app_layout.dart';
 import '../widget/logo.dart';
 
 /// Logo, page title and an optional trailing action, shared by the tab pages.
@@ -18,8 +19,9 @@ class PageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gutter = AppLayout.gutter(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 12),
       child: Row(
         children: [
           const Logo(size: 40),

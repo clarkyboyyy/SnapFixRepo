@@ -32,11 +32,14 @@
             </nav>
 
             <div class="sidebar-profile">
-                <div class="profile-avatar">AD</div>
-                <div class="profile-info">
-                    <h3>Alex Dispatcher</h3>
-                    <p>Administrator</p>
+                <div class="profile-summary">
+                    <div class="profile-avatar" data-profile-avatar>SF</div>
+                    <div class="profile-info">
+                        <h3 data-profile-name>Staff account</h3>
+                        <p data-profile-detail>Not signed in</p>
+                    </div>
                 </div>
+                <button class="sign-out-button" type="button" data-sign-out>Sign out</button>
             </div>
         </aside>
 
@@ -50,7 +53,7 @@
 
                 <div class="header-actions">
                     <span class="admin-role">Administrator</span>
-                    <div class="header-avatar">AD</div>
+                    <div class="header-avatar" data-profile-avatar>SF</div>
                 </div>
             </header>
 
@@ -95,6 +98,7 @@
         </main>
     </div>
 
+    <script src="../shared/admin-profile.js"></script>
     <script src="tckts.js"></script>
 </body>
 </html>

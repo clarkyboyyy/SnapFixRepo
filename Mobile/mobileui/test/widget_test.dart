@@ -24,6 +24,7 @@ import 'package:mobileui/screen/submitted_report.dart';
 import 'package:mobileui/screen/update.dart';
 import 'package:mobileui/screen/welcome_screen.dart';
 import 'package:mobileui/theme/app_theme.dart';
+import 'package:mobileui/utils/app_layout.dart';
 import 'package:mobileui/widget/report_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -431,23 +432,105 @@ void main() {
       'Auth': AuthScreen(onSignedIn: (email, name) {}),
       'Login': LoginPage(onSignedIn: (email, name) {}),
       'Signup': SignupPage(onSignedIn: (email, name) {}),
+      'Shell': SnapFixShell(initialAccount: _account()),
     };
 
-    for (final size in const [Size(320, 568), Size(390, 844)]) {
+    for (final size in const [
+      Size(320, 568),
+      Size(360, 640),
+      Size(393, 873),
+      Size(430, 950),
+    ]) {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1.0;
 
-      for (final entry in screens.entries) {
-        await tester.pumpWidget(
-          MaterialApp(theme: AppTheme.light, home: entry.value),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: '${size.width}dp - ${entry.key}',
-        );
+      // 1.0 is the reference; 1.3 is the largest Android text scale the app
+      // allows, so both ends of the clamped range must stay overflow-free.
+      for (final textScale in const [1.0, 1.3]) {
+        for (final entry in screens.entries) {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: AppTheme.light,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context)
+                    .copyWith(textScaler: TextScaler.linear(textScale)),
+                child: child ?? const SizedBox.shrink(),
+              ),
+              home: entry.value,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: '${size.width}dp x$textScale - ${entry.key}',
+          );
+        }
       }
+    }
+  });
+
+  testWidgets('wide windows show the phone-sized app container', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    tester.view.physicalSize = const Size(1280, 900);
+    await tester.pumpWidget(const SnapFixApp());
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSize(find.byType(Scaffold).first).width,
+      AppLayout.maxAppWidth,
+    );
+
+    // A phone narrower than the reference still fills its own screen.
+    tester.view.physicalSize = const Size(360, 740);
+    await tester.pumpWidget(const SnapFixApp(key: Key('compact-phone')));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(Scaffold).first).width, 360);
+  });
+
+  testWidgets('forms stay usable while the keyboard is open', (tester) async {
+    tester.view.physicalSize = const Size(393, 873);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+
+    final report = createSampleReports().first;
+    final forms = <String, Widget>{
+      'Submit': SubmitReportPage(onSubmitted: (_) {}),
+      'Login': LoginPage(onSignedIn: (email, name) {}),
+      'Signup': SignupPage(onSignedIn: (email, name) {}),
+      'Edit profile': ProfileEditPage(account: _account(), onSaved: (_) {}),
+      'Inquiry': InquiryPage(report: report),
+    };
+
+    for (final entry in forms.entries) {
+      await tester.pumpWidget(
+        MaterialApp(theme: AppTheme.light, home: entry.value),
+      );
+      await tester.pumpAndSettle();
+
+      final field = find.byType(EditableText).first;
+      await tester.enterText(field, 'typing');
+      tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: '${entry.key} with keyboard open',
+      );
+
+      // The screen must still scroll instead of clipping the form.
+      final scrollable = find.byType(Scrollable).first;
+      expect(scrollable, findsOneWidget, reason: entry.key);
+
+      tester.view.viewInsets = FakeViewPadding.zero;
+      await tester.pumpAndSettle();
     }
   });
 
@@ -466,7 +549,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Choose a category'), findsOneWidget);
-    expect(find.text('Give the issue a short title'), findsOneWidget);
+    expect(find.text('Issue title is required.'), findsOneWidget);
     expect(find.text('Enter where the issue is'), findsOneWidget);
   });
 

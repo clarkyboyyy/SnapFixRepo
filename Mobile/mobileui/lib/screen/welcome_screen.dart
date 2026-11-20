@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/app_layout.dart';
 import '../widget/logo.dart';
 
 /// First launch: introduces SnapFix and offers the guided tour.
@@ -16,6 +17,9 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final gutter = MediaQuery.sizeOf(context).width < 360 ? 24.0 : 32.0;
+    final logoSize = AppLayout.fitWidth(context, 92, .28);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -23,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) => SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: EdgeInsets.symmetric(horizontal: gutter),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight,
@@ -32,7 +36,7 @@ class WelcomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(height: 24),
-                        const Logo(size: 92),
+                        Logo(size: logoSize),
                         const SizedBox(height: 28),
                         const Text(
                           'SnapFix',

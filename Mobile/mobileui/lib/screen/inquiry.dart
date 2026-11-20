@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
 import '../ticketservice.dart';
 import '../models/issuecategory.dart';
 import '../theme/app_theme.dart';
@@ -47,10 +48,7 @@ class _InquiryPageState extends State<InquiryPage> {
     _controller.addListener(_onDraftChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToEnd());
     _loadMessages();
-    _poll = Timer.periodic(
-      const Duration(seconds: 4),
-      (_) => _loadMessages(),
-    );
+    _poll = Timer.periodic(const Duration(seconds: 4), (_) => _loadMessages());
   }
 
   /// Pulls the shared thread from the backend so admin replies appear without
@@ -97,33 +95,33 @@ class _InquiryPageState extends State<InquiryPage> {
     super.dispose();
   }
 
- Future<void> _send() async {
-  final text = _controller.text.trim();
-  if (text.isEmpty) return;
-  
-  // Save the text before clearing the controller
-  final sentText = text;
-  
-  // Clear UI immediately for a snappy feel
-  setState(() {
-    _controller.clear();
-  });
-  _focus.unfocus();
+  Future<void> _send() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
 
-  try {
-    // Transmit to C# API
-    await TicketService.sendMessage(_report.id, sentText);
+    // Save the text before clearing the controller
+    final sentText = text;
 
-    // Re-read the shared thread so the bubble and its server timestamp match.
-    await _loadMessages();
-  } catch (e) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send message: $e')),
-      );
+    // Clear UI immediately for a snappy feel
+    setState(() {
+      _controller.clear();
+    });
+    _focus.unfocus();
+
+    try {
+      // Transmit to C# API
+      await TicketService.sendMessage(_report.id, sentText);
+
+      // Re-read the shared thread so the bubble and its server timestamp match.
+      await _loadMessages();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not send message: $e')));
+      }
     }
   }
-}
 
   void _usePrompt(String prompt) {
     _controller.text = prompt;
@@ -154,6 +152,8 @@ class _InquiryPageState extends State<InquiryPage> {
             ),
             Text(
               '${_report.id} • ${_report.status}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.w700,
@@ -169,6 +169,7 @@ class _InquiryPageState extends State<InquiryPage> {
             child: ListView(
               controller: _scroll,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               children: [
                 _ReportStrip(report: _report),
                 const SizedBox(height: 14),

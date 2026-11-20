@@ -1,4 +1,5 @@
 import 'ticketservice.dart';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,18 +19,21 @@ import 'screen/update.dart';
 import 'screen/welcome_screen.dart';
 import 'theme/app_theme.dart';
 import 'screen/signup.dart';
+import 'utils/app_layout.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LocalAccountStore.defaultPrefs = await SharedPreferences.getInstance();
-  runApp(
-    SnapFixApp(initialAccount: await LocalAccountStore().signedInAccount()),
-  );
 
   await Supabase.initialize(
     url: 'https://oymklmxvcftvrinjqryx.supabase.co/rest/v1/',
     publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtsbXh2Y2Z0dnJpbmpxcnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjQ2NTMsImV4cCI6MjEwODY0MDY1M30.-5CEbJ1k8bRiWzEQCfGb8ANzTfwF3SccbbQZNau3kBc',
   );
+  // 2. Forcefully clear the saved account from the device's memory
+  await LocalAccountStore().signOut();
+
+  // 3. Start the app with no initial account, forcing it to the Welcome screen
+  runApp(const SnapFixApp(initialAccount: null));
 }
 
 final supabase = Supabase.instance.client;
@@ -61,8 +65,52 @@ class SnapFixApp extends StatelessWidget {
     title: 'SnapFix',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
+    builder: _appFrame,
     home: AppEntry(initialAccount: initialAccount),
   );
+
+  /// Keeps the layout fluid on phones and bounds how far it stretches on
+  /// roomier windows. The height always comes from the device, never 873.
+  static Widget _appFrame(BuildContext context, Widget? child) {
+    final media = MediaQuery.of(context);
+    final width = media.size.width.clamp(0.0, AppLayout.maxAppWidth);
+
+    final content = MediaQuery(
+      data: media.copyWith(
+        size: Size(width, media.size.height),
+        // Large Android display sizes must not overflow the chrome; 0.9-1.3
+        // still lets readable text grow.
+        textScaler: media.textScaler.clamp(
+          minScaleFactor: AppLayout.minTextScale,
+          maxScaleFactor: AppLayout.maxTextScale,
+        ),
+      ),
+      child: child ?? const SizedBox.shrink(),
+    );
+
+    if (media.size.width <= AppLayout.maxAppWidth) return content;
+
+    return ColoredBox(
+      color: const Color(0xFFE7E5EC),
+      child: Center(
+        child: SizedBox(
+          width: width,
+          height: media.size.height,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .12),
+                  blurRadius: 26,
+                ),
+              ],
+            ),
+            child: content,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Chooses between the first-run tour and the main app.
@@ -78,12 +126,9 @@ class AppEntry extends StatefulWidget {
 enum _Stage { welcome, onboarding, app, auth }
 
 class _AppEntryState extends State<AppEntry> {
-  late _Stage _stage = widget.initialAccount == null
-      ? _Stage.welcome
-      : _Stage.app;
+  // 1. Force the app to ALWAYS start at the welcome screen
+  late _Stage _stage = _Stage.welcome;
 
-  /// `initialAccount` is only what an earlier launch left behind, so the
-  /// resident registered in this session has to be carried to the shell here.
   late LocalAccount? _account = widget.initialAccount;
 
   void _advance(_Stage stage) {
@@ -101,17 +146,26 @@ class _AppEntryState extends State<AppEntry> {
 
   @override
   Widget build(BuildContext context) {
+    // 2. Helper function to decide where to go after Welcome/Onboarding
+    void proceedAfterIntro() {
+      if (_account != null) {
+        _advance(_Stage.app); // Already logged in, go to dashboard
+      } else {
+        _advance(_Stage.auth); // Not logged in, go to auth
+      }
+    }
+
     switch (_stage) {
       case _Stage.welcome:
         return WelcomeScreen(
           onGetStarted: () => _advance(_Stage.onboarding),
-          onSkip: () => _advance(_Stage.app),
+          onSkip: proceedAfterIntro, // Use the helper function here
         );
 
       case _Stage.onboarding:
         return OnboardingScreen(
-          onFinished: () => _advance(_Stage.auth),
-          onSkip: () => _advance(_Stage.app),
+          onFinished: proceedAfterIntro, // Use the helper function here
+          onSkip: proceedAfterIntro, // Use the helper function here
         );
 
       case _Stage.auth:
@@ -136,12 +190,11 @@ class SnapFixShell extends StatefulWidget {
 
 class _SnapFixShellState extends State<SnapFixShell> {
   final List<IssueReport> _reports = [];
-bool _isLoadingReports = true;
+  bool _isLoadingReports = true;
 
   final LocalAccountStore _store = LocalAccountStore();
   int _tab = 0;
   late LocalAccount? _account = widget.initialAccount;
-
 
   @override
   void initState() {
@@ -179,19 +232,14 @@ bool _isLoadingReports = true;
 
       if (showLoader) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not load saved reports: $error'),
-          ),
+          SnackBar(content: Text('Could not load saved reports: $error')),
         );
       }
     }
   }
 
-
   Future<void> _open(Widget page) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => page));
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
     if (mounted) _loadReports(showLoader: false);
   }
 
@@ -216,23 +264,21 @@ bool _isLoadingReports = true;
     ];
 
     return Scaffold(
-  body: SafeArea(
-    child: _isLoadingReports
-        ? const Center(
-            child: CircularProgressIndicator(),
-          )
-        : pages[_tab],
-  ),
-  bottomNavigationBar: NavigationBar(
-    selectedIndex: _tab,
-    onDestinationSelected: (i) {
-      if (i == 2) {
-        _open(SubmitReportPage(onSubmitted: _addReport));
-      } else {
-        setState(() => _tab = i);
-        _loadReports(showLoader: false);
-      }
-    },
+      body: SafeArea(
+        child: _isLoadingReports
+            ? const Center(child: CircularProgressIndicator())
+            : pages[_tab],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) {
+          if (i == 2) {
+            _open(SubmitReportPage(onSubmitted: _addReport));
+          } else {
+            setState(() => _tab = i);
+            _loadReports(showLoader: false);
+          }
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
