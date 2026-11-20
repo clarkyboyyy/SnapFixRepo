@@ -53,11 +53,14 @@
             </nav>
 
             <div class="sidebar-profile">
-                <div class="profile-avatar">AD</div>
-                <div class="profile-info">
-                    <h3>Alex Dispatcher</h3>
-                    <p>Administrator</p>
+                <div class="profile-summary">
+                    <div class="profile-avatar" data-profile-avatar>SF</div>
+                    <div class="profile-info">
+                        <h3 data-profile-name>Staff account</h3>
+                        <p data-profile-detail>Not signed in</p>
+                    </div>
                 </div>
+                <button class="sign-out-button" type="button" data-sign-out>Sign out</button>
             </div>
         </aside>
 
@@ -186,20 +189,7 @@
                                 rows="4"
                                 placeholder="Add internal notes or instructions..."
                             ></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="ticket-progress">Progress (0–100%)</label>
-
-                            <input
-                                type="number"
-                                id="ticket-progress"
-                                min="0"
-                                max="100"
-                                step="5"
-                                value="0"
-                            >
-                        </div>
+                       
 
                         <div class="form-group">
                             <label for="progress-note">Progress Update Note</label>
@@ -263,6 +253,7 @@
         </main>
     </div>
 
+    <script src="../shared/admin-profile.js"></script>
     <script src="rev.js"></script>
 </body>
 </html>
