@@ -172,15 +172,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 : _loading
                 ? 'Refreshing your account details…'
                 : 'Your account information',
-            action: IconButton(
-              onPressed: widget.onAuth,
-              tooltip: 'Account settings',
-              icon: const Icon(
-                Icons.settings_outlined,
-                color: AppTheme.pink,
-                size: 20,
-              ),
-            ),
           ),
           if (_loading)
             const Padding(

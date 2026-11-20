@@ -17,11 +17,23 @@ namespace AppBackend.Controllers
             _context = context;
         }
 
-        // GET: api/tickets
+        // GET: api/tickets[?email=name@example.com]
+        // Dito yun pre kaya nalalagay yung report sa lahat ng account
+        // Walang nag fifilter
         [HttpGet]
-        public async Task<IActionResult> GetAllTickets()
+        public async Task<IActionResult> GetAllTickets([FromQuery] string? email)
         {
-            var tickets = await _context.Tickets
+            var query = _context.Tickets.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var owner = email.Trim().ToLowerInvariant();
+                query = query.Where(ticket =>
+                    ticket.UserEmail != null &&
+                    ticket.UserEmail.ToLower() == owner);
+            }
+
+            var tickets = await query
                 .OrderByDescending(ticket => ticket.DateSubmitted)
                 .ToListAsync();
             return Ok(tickets);
@@ -50,6 +62,9 @@ namespace AppBackend.Controllers
                 newTicket.Progress = newTicket.Status == TicketStatus.Resolved
                     ? 100
                     : Math.Clamp(newTicket.Progress, 0, 100);
+                newTicket.UserEmail = string.IsNullOrWhiteSpace(newTicket.UserEmail)
+                    ? null
+                    : newTicket.UserEmail.Trim().ToLowerInvariant();
 
                 _context.Tickets.Add(newTicket);
                 await _context.SaveChangesAsync();

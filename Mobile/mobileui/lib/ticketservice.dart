@@ -7,12 +7,14 @@ import '../apiconfig.dart';
 class TicketService {
   static String get _baseUrl => ApiConfig.baseUrl;
 
+  //dito mafetch mga ticket na na-submit ng user ibat ibang email na
   static Future<void> submitTicket(
     String id,
     String title,
     String location,
-    String description,
-  ) async {
+    String description, {
+    String? userEmail,
+  }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/api/tickets'),
       headers: {"Content-Type": "application/json"},
@@ -24,6 +26,8 @@ class TicketService {
         "dateSubmitted": DateTime.now().toUtc().toIso8601String(),
         "status": "Submitted",
         "priority": "High",
+        if (userEmail != null && userEmail.trim().isNotEmpty)
+          "userEmail": userEmail.trim().toLowerCase(),
       }),
     );
 
@@ -90,8 +94,15 @@ class TicketService {
     }
   }
 
-  static Future<List<dynamic>> fetchTickets() async {
-    final response = await http.get(Uri.parse('$_baseUrl/api/tickets'));
+  /// Reports filed by [userEmail]; without it the backend returns everything
+  /// (used by the web admin dashboard, not the mobile app).
+  static Future<List<dynamic>> fetchTickets({String? userEmail}) async {
+    final uri = Uri.parse('$_baseUrl/api/tickets').replace(
+      queryParameters: userEmail == null || userEmail.trim().isEmpty
+          ? null
+          : {'email': userEmail.trim().toLowerCase()},
+    );
+    final response = await http.get(uri);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

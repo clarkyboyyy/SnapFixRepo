@@ -62,7 +62,6 @@ class _SignupPageState extends State<SignupPage> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
-  final _phone = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _showPassword = false;
@@ -73,7 +72,6 @@ class _SignupPageState extends State<SignupPage> {
   void dispose() {
     _name.dispose();
     _email.dispose();
-    _phone.dispose();
     _password.dispose();
     _confirm.dispose();
     super.dispose();
@@ -95,7 +93,6 @@ class _SignupPageState extends State<SignupPage> {
               'fullName': _name.text.trim(),
               'email': _email.text.trim(),
               'password': _password.text,
-              'phone': _phone.text.trim(),
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -120,7 +117,7 @@ class _SignupPageState extends State<SignupPage> {
         name: _prefer(profile?.fullName, _name.text),
         email: _prefer(profile?.email, _email.text),
         password: _password.text,
-        mobile: _prefer(profile?.phone, _phone.text),
+        mobile: profile?.phone ?? '',
       );
 
       if (!mounted) return;
@@ -133,6 +130,16 @@ class _SignupPageState extends State<SignupPage> {
       }
 
       widget.onSignedIn(account.email, account.name);
+      final who = account.name.trim();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            who.isEmpty
+                ? 'Account created for ${account.email}!'
+                : 'Welcome, $who! Your account is ready.',
+          ),
+        ),
+      );
       setState(() => _busy = false);
       Navigator.of(context).popUntil((route) => route.isFirst);
     } on TimeoutException {
@@ -193,13 +200,6 @@ class _SignupPageState extends State<SignupPage> {
                 hint: 'name@example.com',
                 keyboardType: TextInputType.emailAddress,
                 validator: validateEmail,
-              ),
-              AuthField(
-                label: 'Mobile Number (optional)',
-                controller: _phone,
-                hint: 'e.g. 0917 123 4567',
-                keyboardType: TextInputType.phone,
-                validator: validateMobile,
               ),
               AuthField(
                 label: 'Password',

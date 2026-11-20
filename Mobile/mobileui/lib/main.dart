@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'ticketservice.dart';
 
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/local_account_store.dart';
 import 'models/issuecategory.dart';
+import 'notifications/AppWebNotif.dart';
 import 'screen/auth_screen.dart';
 import 'screen/edit_profile.dart';
 import 'screen/home.dart';
@@ -15,7 +18,7 @@ import 'screen/report.dart';
 import 'screen/report_details.dart';
 import 'screen/submit_report.dart';
 import 'screen/submitted_report.dart';
-import 'screen/update.dart';
+import 'screen/update.dart' hide ReportUpdate;
 import 'screen/welcome_screen.dart';
 import 'theme/app_theme.dart';
 import 'screen/signup.dart';
@@ -196,19 +199,48 @@ class _SnapFixShellState extends State<SnapFixShell> {
   int _tab = 0;
   late LocalAccount? _account = widget.initialAccount;
 
+  late final AppWebNotif _adminUpdates = AppWebNotif(
+    owner: () => _account?.email,
+    ticketIds: () => _reports.map((report) => report.id).toList(),
+    onNewUpdate: _onAdminUpdate,
+  );
+
+  Timer? _bannerTimer;
+  int _bannerSeq = 0;
+
   @override
   void initState() {
     super.initState();
+    _adminUpdates.start();
     _loadReports();
   }
 
+  @override
+  void dispose() {
+    _bannerTimer?.cancel();
+    _adminUpdates.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadReports({bool showLoader = true}) async {
+    final owner = _account?.email.trim().toLowerCase() ?? '';
+    if (owner.isEmpty) {
+      // Guests and signed-out users must never see another resident's reports.
+      if (mounted) {
+        setState(() {
+          _reports.clear();
+          _isLoadingReports = false;
+        });
+      }
+      return;
+    }
+
     if (showLoader && !_isLoadingReports) {
       setState(() => _isLoadingReports = true);
     }
 
     try {
-      final tickets = await TicketService.fetchTickets();
+      final tickets = await TicketService.fetchTickets(userEmail: owner);
 
       final loadedReports = tickets.map((item) {
         final ticket = Map<String, dynamic>.from(item as Map);
@@ -216,6 +248,8 @@ class _SnapFixShellState extends State<SnapFixShell> {
       }).toList();
 
       if (!mounted) return;
+      // The account may have changed while the request was in flight.
+      if ((_account?.email.trim().toLowerCase() ?? '') != owner) return;
 
       setState(() {
         _reports
@@ -223,6 +257,10 @@ class _SnapFixShellState extends State<SnapFixShell> {
           ..addAll(loadedReports);
         _isLoadingReports = false;
       });
+
+      // Seed the watcher on the account's tickets right away; updates that
+      // arrive after this pass are the ones that pop up.
+      _adminUpdates.checkNow();
     } catch (error) {
       if (!mounted) return;
 
@@ -249,7 +287,12 @@ class _SnapFixShellState extends State<SnapFixShell> {
       HomePage(
         reports: _reports,
         onReport: _showDetails,
-        onCreate: () => _open(SubmitReportPage(onSubmitted: _addReport)),
+        onCreate: () => _open(
+          SubmitReportPage(
+            onSubmitted: _addReport,
+            accountEmail: _account?.email,
+          ),
+        ),
       ),
       ReportsPage(reports: _reports, onReport: _showDetails),
       const SizedBox.shrink(),
@@ -273,7 +316,12 @@ class _SnapFixShellState extends State<SnapFixShell> {
         selectedIndex: _tab,
         onDestinationSelected: (i) {
           if (i == 2) {
-            _open(SubmitReportPage(onSubmitted: _addReport));
+            _open(
+              SubmitReportPage(
+                onSubmitted: _addReport,
+                accountEmail: _account?.email,
+              ),
+            );
           } else {
             setState(() => _tab = i);
             _loadReports(showLoader: false);
@@ -327,27 +375,21 @@ class _SnapFixShellState extends State<SnapFixShell> {
     );
   }
 
-  void _openAuth() =>
-      _open(AuthScreen(onSignedIn: (email, name) => _onSignedIn(email, name)));
+  void _openAuth() => _open(AuthScreen(onSignedIn: _onSignedIn));
 
   /// The auth pages pop themselves and persist the session, so the shell only
-  /// has to re-read what storage holds.
+  /// has to re-read what storage holds. The welcome message is shown by
+  /// LoginPage/SignupPage, which know which flow just finished.
   void _onSignedIn(String email, String? name) {
     _refreshAccount();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          name == null || name.trim().isEmpty
-              ? 'Signed in as $email.'
-              : 'Welcome back, ${name.trim()}!',
-        ),
-      ),
-    );
   }
 
   Future<void> _refreshAccount() async {
     final account = await _store.signedInAccount();
-    if (mounted) setState(() => _account = account);
+    if (!mounted) return;
+    setState(() => _account = account);
+    // Switching accounts must swap the report feed immediately.
+    _loadReports(showLoader: false);
   }
 
   void _editProfile() {
@@ -367,7 +409,52 @@ class _SnapFixShellState extends State<SnapFixShell> {
   Future<void> _signOut() async {
     // Ends the session but keeps the account registered on this device.
     await _store.signOut();
-    if (mounted) setState(() => _account = null);
+    if (!mounted) return;
+    setState(() => _account = null);
+    _loadReports(showLoader: false);
+  }
+
+  void _onAdminUpdate(String ticketId, ReportUpdate update) {
+    if (!mounted) return;
+    final report = _reports.where((r) => r.id == ticketId).firstOrNull;
+    if (report == null) return;
+
+    final seq = ++_bannerSeq;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearMaterialBanners();
+    messenger.showMaterialBanner(
+      MaterialBanner(
+        backgroundColor: Colors.white,
+        leading: const Icon(Icons.notifications_active, color: AppTheme.pink),
+        content: Text(
+          '${report.title}: ${AppWebNotif.describe(update)}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              messenger.hideCurrentMaterialBanner();
+              _showDetails(report);
+            },
+            child: const Text('View'),
+          ),
+          TextButton(
+            onPressed: messenger.hideCurrentMaterialBanner,
+            child: const Text('Dismiss'),
+          ),
+        ],
+      ),
+    );
+
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer(const Duration(seconds: 8), () {
+      if (!mounted || seq != _bannerSeq) return;
+      messenger.hideCurrentMaterialBanner();
+    });
+
+    // Refresh so Reports, Details, and the Updates feed show the new state.
+    _loadReports(showLoader: false);
   }
 
   void _showDetails(IssueReport report) => _open(

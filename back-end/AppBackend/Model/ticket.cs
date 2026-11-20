@@ -23,6 +23,10 @@ namespace AppBackend.Model
         [Column("description")]
         public required string Description { get; set; }
 
+        // eto yung mag filter ng emails
+        [Column("user_email")]
+        public string? UserEmail { get; set; }
+
         [Column("photo_url")]
         public string? PhotoUrl { get; set; } // Nullable
 

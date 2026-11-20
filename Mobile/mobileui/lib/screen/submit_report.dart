@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/services.dart';
-
 import '../ticketservice.dart';
 
 import 'package:flutter/material.dart';
@@ -15,12 +13,17 @@ import '../widget/page_header.dart';
 /// photo. Builds an [IssueReport] and hands it to [onSubmitted]; the caller
 /// owns persistence and navigation.
 ///
-final newId = 'SF-${DateTime.now().millisecondsSinceEpoch}';
-
 class SubmitReportPage extends StatefulWidget {
-  const SubmitReportPage({super.key, required this.onSubmitted});
+  const SubmitReportPage({
+    super.key,
+    required this.onSubmitted,
+    this.accountEmail,
+  });
 
   final void Function(IssueReport report) onSubmitted;
+
+  /// Signed-in resident; the report is filed under this account.
+  final String? accountEmail;
 
   @override
   State<SubmitReportPage> createState() => _SubmitReportPageState();
@@ -48,6 +51,13 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
 
   static const int _maxPhotoBytes = 5 * 1024 * 1024;
   static const Set<String> _allowedPhotoExtensions = {'.jpg', '.jpeg', '.png'};
+
+  /// Counts whitespace-separated words, so the form limits match the messages.
+  static int _wordCount(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 0;
+    return trimmed.split(RegExp(r'\s+')).length;
+  }
 
   Future<String?> _validatePhoto(XFile file) async {
     final name = file.name.toLowerCase();
@@ -118,6 +128,9 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     setState(() => _isSubmitting = true); // Lock UI
 
     try {
+      // A fresh id per submission; generating it once per app run made every
+      // report after the first collide with PK_tickets.
+      final newId = 'SF-${DateTime.now().millisecondsSinceEpoch}';
       String title = _title.text.trim();
       String location = _location.text.trim();
       String description = _description.text.trim();
@@ -130,6 +143,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         title,
         location,
         description,
+        userEmail: widget.accountEmail,
       ).timeout(const Duration(seconds: 10));
       if (mounted) {
         Navigator.pop(context);
@@ -237,12 +251,10 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                       validator: (v) => v == null ? 'Choose a category' : null,
                     ),
                     const SizedBox(height: 14),
-                    const _FieldLabel('Issue title'),
+                    const _FieldLabel('Issue title' + ' (max 10 words)'),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _title,
-                      maxLength: 10,
-                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         hintText: 'e.g. Broken streetlight on Rizal Ave',
@@ -254,20 +266,18 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                       validator: (v) {
                         final title = v?.trim() ?? '';
                         if (title.isEmpty) return 'Issue title is required.';
-                        if (title.length > 10) {
-                          return 'Issue title must not exceed 10 characters.';
+                        if (_wordCount(title) > 10) {
+                          return 'Issue title must not exceed 10 words.';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 14),
-                    const _FieldLabel('Description'),
+                    const _FieldLabel('Description' + ' (max 200 words)'),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _description,
                       maxLines: 4,
-                      maxLength: 50,
-                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: const InputDecoration(
                         hintText:
@@ -283,8 +293,8 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                         if (description.trim().isEmpty) {
                           return 'Description is required.';
                         }
-                        if (description.length > 50) {
-                          return 'Description must not exceed 50 characters.';
+                        if (_wordCount(description) > 200) {
+                          return 'Description must not exceed 200 words.';
                         }
                         return null;
                       },

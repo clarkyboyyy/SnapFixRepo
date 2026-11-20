@@ -92,6 +92,16 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       widget.onSignedIn(account.email, account.name);
+      final who = account.name.trim();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            who.isEmpty
+                ? 'Signed in as ${account.email}.'
+                : 'Welcome back, $who!',
+          ),
+        ),
+      );
       setState(() => _busy = false);
       Navigator.of(context).popUntil((route) => route.isFirst);
     } on TimeoutException {
