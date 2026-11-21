@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+
+import '../apiconfig.dart';
 
 /// One GPS fix taken from the device.
 class DeviceLocation {
@@ -30,6 +34,33 @@ class LocationException implements Exception {
 /// can display; callers never have to know about plugin-specific exceptions.
 class LocationService {
   LocationService._();
+
+  static String get _baseUrl => ApiConfig.baseUrl;
+
+  /// Turns a fix into a readable place name through the SnapFix API.
+  ///
+  /// Returns null when the lookup fails (backend offline, unknown address), so
+  /// callers can fall back to the raw coordinates.
+  static Future<String?> describe(DeviceLocation location) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/api/locations/reverse').replace(
+        queryParameters: {
+          'latitude': location.latitude.toString(),
+          'longitude': location.longitude.toString(),
+        },
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return null;
+
+      final body = jsonDecode(response.body);
+      if (body is! Map) return null;
+
+      final name = body['name']?.toString().trim();
+      return name == null || name.isEmpty ? null : name;
+    } on Exception {
+      return null;
+    }
+  }
 
   /// Returns one high-accuracy fix, asking for permission when needed.
   ///

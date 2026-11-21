@@ -10,29 +10,21 @@ namespace AppBackend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<double>(
-                name: "latitude",
-                table: "tickets",
-                type: "double precision",
-                nullable: true);
-
-            migrationBuilder.AddColumn<double>(
-                name: "longitude",
-                table: "tickets",
-                type: "double precision",
-                nullable: true);
+            // IF NOT EXISTS keeps this safe when the columns were already added
+            // by hand in the Supabase SQL editor.
+            migrationBuilder.Sql(@"
+                ALTER TABLE tickets ADD COLUMN IF NOT EXISTS latitude double precision;
+                ALTER TABLE tickets ADD COLUMN IF NOT EXISTS longitude double precision;
+            ");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "latitude",
-                table: "tickets");
-
-            migrationBuilder.DropColumn(
-                name: "longitude",
-                table: "tickets");
+            migrationBuilder.Sql(@"
+                ALTER TABLE tickets DROP COLUMN IF EXISTS latitude;
+                ALTER TABLE tickets DROP COLUMN IF EXISTS longitude;
+            ");
         }
     }
 }

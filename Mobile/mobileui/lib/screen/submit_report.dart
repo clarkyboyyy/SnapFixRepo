@@ -132,8 +132,19 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       final location = await LocationService.currentLocation();
       if (!mounted) return;
       setState(() => _coordinates = location);
+
+      // Show the barangay/street name; numbers only when the lookup fails.
+      final placeName = await LocationService.describe(location);
+      if (!mounted) return;
+
+      final label = placeName ?? 'GPS ${location.label}';
+      // The text field is still required by the form; a captured fix fills it
+      // so the resident can submit without typing the address as well.
+      if (_location.text.trim().isEmpty) {
+        _location.text = label;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location captured: ${location.label}')),
+        SnackBar(content: Text('Location captured: $label')),
       );
     } on LocationException catch (error) {
       if (!mounted) return;
@@ -155,7 +166,6 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       // report after the first collide with PK_tickets.
       final newId = 'SF-${DateTime.now().millisecondsSinceEpoch}';
       String title = _title.text.trim();
-      String location = _location.text.trim();
       String description = _description.text.trim();
       String categoryLabel = _category?.label ?? 'General';
       String? photoPath = _photo?.path;
@@ -168,6 +178,12 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         } on LocationException {
           coordinates = null;
         }
+      }
+
+      // GPS alone is enough for the location text; typing an address still wins.
+      var location = _location.text.trim();
+      if (location.isEmpty && coordinates != null) {
+        location = 'GPS ${coordinates.label}';
       }
 
       // 1. Send the report with a 10-second timeout so it doesn't hang forever
@@ -352,7 +368,9 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                           color: AppTheme.pink,
                         ),
                       ),
-                      validator: (v) => (v == null || v.trim().isEmpty)
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) &&
+                              _coordinates == null
                           ? 'Enter where the issue is'
                           : null,
                     ),
