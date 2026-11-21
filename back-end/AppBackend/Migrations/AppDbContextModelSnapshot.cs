@@ -73,10 +73,18 @@ namespace AppBackend.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("latitude");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("location");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("double precision")
+                        .HasColumnName("longitude");
 
                     b.Property<string>("PhotoUrl")
                         .HasColumnType("text")
@@ -100,6 +108,10 @@ namespace AppBackend.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("title");
+
+                    b.Property<string>("UserEmail")
+                        .HasColumnType("text")
+                        .HasColumnName("user_email");
 
                     b.HasKey("Id");
 

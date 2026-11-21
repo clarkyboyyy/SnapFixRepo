@@ -46,5 +46,12 @@ namespace AppBackend.Model
         // Work completion reported by the admin, 0-100.
         [Column("progress")]
         public int Progress { get; set; }
+
+        // GPS coordinates captured on the resident's phone when filing.
+        [Column("latitude")]
+        public double? Latitude { get; set; }
+
+        [Column("longitude")]
+        public double? Longitude { get; set; }
     }
 }

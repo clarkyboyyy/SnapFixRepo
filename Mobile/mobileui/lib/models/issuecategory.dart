@@ -15,6 +15,8 @@ class IssueReport {
     this.progress = 0,
     this.assignedDepartment,
     this.adminNotes,
+    this.latitude,
+    this.longitude,
     List<InquiryMessage>? messages,
     List<ReportUpdate>? history,
   }) : messages = messages ?? [],
@@ -47,6 +49,8 @@ class IssueReport {
         json['assignedDepartment'] ?? json['assigned_department'],
       ),
       adminNotes: _optionalString(json['adminNotes'] ?? json['admin_notes']),
+      latitude: _optionalDouble(json['latitude']),
+      longitude: _optionalDouble(json['longitude']),
     );
   }
 
@@ -73,6 +77,10 @@ class IssueReport {
   /// Notes the admin saved with the ticket.
   final String? adminNotes;
 
+  /// GPS coordinates captured on the device, when the resident allowed it.
+  final double? latitude;
+  final double? longitude;
+
   /// Conversation thread between the resident and the barangay admin.
   final List<InquiryMessage> messages;
 
@@ -98,6 +106,8 @@ class IssueReport {
     String? photoUrl,
     String? assignedDepartment,
     String? adminNotes,
+    double? latitude,
+    double? longitude,
     List<InquiryMessage>? messages,
     List<ReportUpdate>? history,
   }) {
@@ -114,6 +124,8 @@ class IssueReport {
       progress: progress ?? this.progress,
       assignedDepartment: assignedDepartment ?? this.assignedDepartment,
       adminNotes: adminNotes ?? this.adminNotes,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       messages: messages ?? this.messages,
       history: history ?? this.history,
     );
@@ -154,6 +166,11 @@ class ReportUpdate {
 String? _optionalString(Object? value) {
   final text = value?.toString().trim();
   return text == null || text.isEmpty ? null : text;
+}
+
+double? _optionalDouble(Object? value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse('${value ?? ''}');
 }
 
 enum InquiryAuthor { user, admin }

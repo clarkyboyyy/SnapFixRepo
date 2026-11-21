@@ -9,3 +9,9 @@ public class UpdateTicketRequest
     // Optional note describing this update; stored in the tracking history.
     public string? Note { get; set; }
 }
+
+public class UpdateLocationRequest
+{
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+}

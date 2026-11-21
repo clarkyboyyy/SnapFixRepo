@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/issuecategory.dart';
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../widget/page_header.dart';
 
@@ -38,7 +39,9 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
 
   IssueCategory? _category;
   File? _photo;
+  DeviceLocation? _coordinates;
   bool _picking = false;
+  bool _locating = false;
   bool _isSubmitting = false; // <-- Prevents multiple taps and UI freezing
 
   @override
@@ -121,6 +124,26 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     }
   }
 
+  /// Asks for permission and stores the device's current GPS fix.
+  Future<void> _useCurrentLocation() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    try {
+      final location = await LocationService.currentLocation();
+      if (!mounted) return;
+      setState(() => _coordinates = location);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location captured: ${location.label}')),
+      );
+    } on LocationException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   void _submit() async {
     if (_isSubmitting) return;
     if (!_form.currentState!.validate()) return;
@@ -137,6 +160,16 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       String categoryLabel = _category?.label ?? 'General';
       String? photoPath = _photo?.path;
 
+      // Best effort: a denied GPS must never block the report itself.
+      var coordinates = _coordinates;
+      if (coordinates == null) {
+        try {
+          coordinates = await LocationService.currentLocation();
+        } on LocationException {
+          coordinates = null;
+        }
+      }
+
       // 1. Send the report with a 10-second timeout so it doesn't hang forever
       await TicketService.submitTicket(
         newId,
@@ -144,6 +177,8 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         location,
         description,
         userEmail: widget.accountEmail,
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
       ).timeout(const Duration(seconds: 10));
       if (mounted) {
         Navigator.pop(context);
@@ -160,6 +195,8 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         createdAt: DateTime.now(),
         photoPath: photoPath,
         progress: 0,
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
       );
 
       // 3. Notify parent screen
@@ -251,7 +288,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                       validator: (v) => v == null ? 'Choose a category' : null,
                     ),
                     const SizedBox(height: 14),
-                    const _FieldLabel('Issue title' + ' (max 10 words)'),
+                    const _FieldLabel('Issue title (max 10 words)'),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _title,
@@ -273,7 +310,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    const _FieldLabel('Description' + ' (max 200 words)'),
+                    const _FieldLabel('Description (max 200 words)'),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _description,
@@ -319,6 +356,57 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
                           ? 'Enter where the issue is'
                           : null,
                     ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _locating
+                                ? null
+                                : _useCurrentLocation,
+                            icon: _locating
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.my_location,
+                                    size: 18,
+                                  ),
+                            label: Text(
+                              _locating
+                                  ? 'Getting location...'
+                                  : 'Use my current location',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_coordinates != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.gps_fixed,
+                            size: 14,
+                            color: AppTheme.pink,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'GPS: ${_coordinates!.label}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.muted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     const Row(
                       children: [

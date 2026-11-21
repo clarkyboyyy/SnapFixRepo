@@ -14,6 +14,8 @@ class TicketService {
     String location,
     String description, {
     String? userEmail,
+    double? latitude,
+    double? longitude,
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/api/tickets'),
@@ -28,12 +30,39 @@ class TicketService {
         "priority": "High",
         if (userEmail != null && userEmail.trim().isNotEmpty)
           "userEmail": userEmail.trim().toLowerCase(),
+        // GPS captured on the phone; omitted when the resident denies it.
+        if (latitude != null && longitude != null) ...{
+          "latitude": latitude,
+          "longitude": longitude,
+        },
       }),
     );
 
     // If it's NOT a success code (200 or 201), throw an error!
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception("Backend error: ${response.body}");
+    }
+  }
+
+  /// Saves (or replaces) the GPS coordinates of a ticket that already exists.
+  ///
+  /// Called when the fix arrives after the report was filed, e.g. the resident
+  /// taps "Use my current location" again from a later screen.
+  static Future<void> updateTicketLocation(
+    String ticketId, {
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await http.put(
+      Uri.parse(
+        '$_baseUrl/api/tickets/${Uri.encodeComponent(ticketId)}/location',
+      ),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"latitude": latitude, "longitude": longitude}),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to save location: ${response.body}');
     }
   }
 

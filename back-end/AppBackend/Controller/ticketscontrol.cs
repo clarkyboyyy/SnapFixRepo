@@ -66,6 +66,12 @@ namespace AppBackend.Controllers
                     ? null
                     : newTicket.UserEmail.Trim().ToLowerInvariant();
 
+                if (!IsValidCoordinates(newTicket.Latitude, newTicket.Longitude))
+                {
+                    return BadRequest(
+                        "Latitude must be between -90 and 90 and longitude between -180 and 180.");
+                }
+
                 _context.Tickets.Add(newTicket);
                 await _context.SaveChangesAsync();
 
@@ -145,6 +151,34 @@ namespace AppBackend.Controllers
             return Ok(ticket);
         }
 
+        // PUT: api/tickets/SF-1793252633763/location
+        // Stores the GPS coordinates the resident's phone captured for this
+        // report, so the crew can see exactly where the issue is.
+        [HttpPut("{id}/location")]
+        public async Task<IActionResult> UpdateTicketLocation(
+            string id,
+            [FromBody] UpdateLocationRequest request)
+        {
+            if (request.Latitude == null || request.Longitude == null ||
+                !IsValidCoordinates(request.Latitude, request.Longitude))
+            {
+                return BadRequest(
+                    "Send both latitude (-90..90) and longitude (-180..180).");
+            }
+
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null)
+            {
+                return NotFound(new { error = $"Ticket {id} was not found." });
+            }
+
+            ticket.Latitude = request.Latitude;
+            ticket.Longitude = request.Longitude;
+
+            await _context.SaveChangesAsync();
+            return Ok(ticket);
+        }
+
         // GET: api/tickets/SF-1793252633763/updates
         [HttpGet("{id}/updates")]
         public async Task<IActionResult> GetUpdates(string id)
@@ -160,6 +194,13 @@ namespace AppBackend.Controllers
         private static string NormalizeStatus(string? value)
         {
             return TicketStatus.Normalize(value);
+        }
+
+        private static bool IsValidCoordinates(double? latitude, double? longitude)
+        {
+            var latitudeOk = latitude is null or >= -90 and <= 90;
+            var longitudeOk = longitude is null or >= -180 and <= 180;
+            return latitudeOk && longitudeOk;
         }
     }
 }
