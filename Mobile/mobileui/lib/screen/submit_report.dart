@@ -1,10 +1,8 @@
 import 'dart:io';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../ticketservice.dart';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../models/issuecategory.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
@@ -155,7 +153,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
     }
   }
 
-  void _submit() async {
+ void _submit() async {
     if (_isSubmitting) return;
     if (!_form.currentState!.validate()) return;
 
@@ -169,6 +167,23 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
       String description = _description.text.trim();
       String categoryLabel = _category?.label ?? 'General';
       String? photoPath = _photo?.path;
+
+      // Upload the photo to Supabase Storage if one was attached
+      String? uploadedPhotoUrl;
+      if (_photo != null) {
+        final ext = _photo!.path.contains('.')
+            ? _photo!.path.substring(_photo!.path.lastIndexOf('.'))
+            : '.jpg';
+        final fileName = '$newId$ext';
+
+        await Supabase.instance.client.storage
+            .from('Photos')
+            .upload(fileName, _photo!);
+
+        uploadedPhotoUrl = Supabase.instance.client.storage
+            .from('Photos')
+            .getPublicUrl(fileName);
+      }
 
       // Best effort: a denied GPS must never block the report itself.
       var coordinates = _coordinates;
@@ -196,6 +211,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         userEmail: widget.accountEmail,
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
+        photoUrl: uploadedPhotoUrl,
       ).timeout(const Duration(seconds: 10));
       if (mounted) {
         Navigator.pop(context);

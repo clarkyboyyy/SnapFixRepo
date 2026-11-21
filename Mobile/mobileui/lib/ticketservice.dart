@@ -17,6 +17,7 @@ class TicketService {
     String? userEmail,
     double? latitude,
     double? longitude,
+    String? photoUrl,
   }) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/api/tickets'),
@@ -38,6 +39,9 @@ class TicketService {
           "latitude": latitude,
           "longitude": longitude,
         },
+        // Public Supabase Storage URL for the attached photo.
+        if (photoUrl != null && photoUrl.trim().isNotEmpty)
+          "photoUrl": photoUrl.trim(),
       }),
     );
 

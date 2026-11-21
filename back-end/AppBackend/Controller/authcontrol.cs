@@ -27,14 +27,12 @@ namespace AppBackend.Controllers
             try
             {
                 var user = await _context.Users
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(u =>
-                        u.Email.ToLower() == email &&
-                        u.Password == request.password);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
 
-                if (user == null)
+                if (user == null || !BCrypt.Net.BCrypt.Verify(request.password, user.Password))
                 {
-                    return Unauthorized(new { message = "Invalid username or password." });
+                return Unauthorized(new { message = "Invalid username or password." });
                 }
 
                 return Ok(new
@@ -61,6 +59,7 @@ namespace AppBackend.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
+            
             var email = request.Email.Trim().ToLowerInvariant();
 
             try
@@ -73,14 +72,15 @@ namespace AppBackend.Controllers
                 {
                     return Conflict(new { message = "An account with this email already exists." });
                 }
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-                var newUser = new User
-                {
-                    Email = email,
-                    Password = request.Password,
-                    FullName = request.FullName.Trim(),
-                    Phone = ToStoredValue(request.Phone),
-                    Address = ToStoredValue(request.Address)
+            var newUser = new User  
+                {   
+                Email = email,
+                Password = hashedPassword,
+                FullName = request.FullName.Trim(),
+                Phone = ToStoredValue(request.Phone),
+                Address = ToStoredValue(request.Address)
                 };
 
                 _context.Users.Add(newUser);

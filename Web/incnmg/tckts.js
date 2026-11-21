@@ -8,33 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const countElement = document.getElementById("ticket-result-count");
     const sidebarCount = document.getElementById("incoming-ticket-count");
 
-    const sampleTickets = [
-        {
-            id: "SF-1024",
-            issue: "Road Damage",
-            description: "Damaged road surface reported.",
-            location: "BGC, Taguig",
-            status: "pending",
-            date: "October 24, 2026"
-        },
-        {
-            id: "SF-1025",
-            issue: "Broken Streetlight",
-            description: "Streetlight needs maintenance.",
-            location: "Makati City",
-            status: "ongoing",
-            department: "Street Lighting",
-            date: "October 24, 2026"
-        },
-        {
-            id: "SF-1026",
-            issue: "Garbage Collection",
-            description: "Garbage collection issue reported.",
-            location: "Pasig City",
-            status: "pending",
-            date: "October 25, 2026"
-        }
-    ];
+    const sampleTickets = [];
 
     let allTickets = [];
 

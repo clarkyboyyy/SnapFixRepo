@@ -29,7 +29,7 @@ Future<void> main() async {
   LocalAccountStore.defaultPrefs = await SharedPreferences.getInstance();
 
   await Supabase.initialize(
-    url: 'https://oymklmxvcftvrinjqryx.supabase.co/rest/v1/',
+    url: 'https://oymklmxvcftvrinjqryx.supabase.co',
     publishableKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im95bWtsbXh2Y2Z0dnJpbmpxcnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjQ2NTMsImV4cCI6MjEwODY0MDY1M30.-5CEbJ1k8bRiWzEQCfGb8ANzTfwF3SccbbQZNau3kBc',
   );
   // 2. Forcefully clear the saved account from the device's memory
