@@ -77,18 +77,20 @@ document.addEventListener("DOMContentLoaded", function () {
             ticket.DateSubmitted ||
             ticket.date_submitted;
 
+        const parsedDate = rawDate ? new Date(rawDate) : null;
+        const dateObj =
+            parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null;
+
         let date = "Date unavailable";
 
         if (rawDate) {
-            const parsedDate = new Date(rawDate);
-
-            date = isNaN(parsedDate.getTime())
-                ? rawDate
-                : parsedDate.toLocaleDateString("en-US", {
+            date = dateObj
+                ? dateObj.toLocaleDateString("en-US", {
                     month: "long",
                     day: "numeric",
                     year: "numeric"
-                });
+                })
+                : rawDate;
         }
 
         return {
@@ -99,8 +101,60 @@ document.addEventListener("DOMContentLoaded", function () {
             location: ticket.location || ticket.Location || "Unknown",
             status: normalizeStatus(ticket.status || ticket.Status),
             date,
+            dateObj,
+            category: ticket.category || ticket.Category || "Others",
             department: ticket.department || ticket.Department || ""
         };
+    }
+
+    function pad(value) {
+        return String(value).padStart(2, "0");
+    }
+
+    // Common date spellings so "nov 21", "11/21/2026" and "2026-11-21"
+    // all find the same ticket.
+    function searchableDate(dateObj) {
+        if (!dateObj) return "";
+
+        const year = dateObj.getFullYear();
+        const monthIndex = dateObj.getMonth();
+        const day = dateObj.getDate();
+        const monthLong = dateObj.toLocaleDateString("en-US", { month: "long" });
+        const monthShort = dateObj.toLocaleDateString("en-US", { month: "short" });
+
+        return [
+            `${monthLong} ${day}, ${year}`,
+            `${monthShort} ${day}, ${year}`,
+            `${monthLong} ${day} ${year}`,
+            `${monthShort} ${day} ${year}`,
+            `${year}-${pad(monthIndex + 1)}-${pad(day)}`,
+            `${monthIndex + 1}/${day}/${year}`,
+            `${pad(monthIndex + 1)}/${pad(day)}/${year}`,
+            `${day}/${monthIndex + 1}/${year}`,
+            `${pad(day)}/${pad(monthIndex + 1)}/${year}`
+        ].join(" ");
+    }
+
+    const MONTH_WORDS = [
+        "january", "jan", "february", "feb", "march", "mar", "april", "apr",
+        "may", "june", "jun", "july", "jul", "august", "aug", "september",
+        "sept", "sep", "october", "oct", "november", "nov", "december", "dec"
+    ];
+
+    function searchableText(ticket) {
+        const text = [
+            ticket.id,
+            ticket.issue,
+            ticket.description,
+            ticket.category,
+            ticket.location,
+            ticket.status,
+            ticket.department,
+            searchableDate(ticket.dateObj)
+        ].join(" ").toLowerCase();
+
+        // "streetlight" should also match "street light".
+        return text + " " + text.replace(/[^a-z0-9]+/g, "");
     }
 
     // API data is loaded first, then local saved changes override it.
@@ -133,17 +187,51 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderTickets() {
-        const searchText = searchInput.value.trim().toLowerCase();
+        const searchTokens = searchInput.value
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        const hasMonthWord = searchTokens.some(function (token) {
+            return MONTH_WORDS.includes(token);
+        });
+
+        // A day/year next to a month name ("nov 21", "november 2026")
+        // belongs to the date, so it cannot match digits inside a ticket ID.
+        const dateTokens = [];
+        const textTokens = [];
+
+        searchTokens.forEach(function (token) {
+            if (
+                MONTH_WORDS.includes(token) ||
+                (hasMonthWord && /^\d{1,4}$/.test(token))
+            ) {
+                dateTokens.push(token);
+            } else {
+                textTokens.push(token);
+            }
+        });
 
         const incomingTickets = allTickets.filter(function (ticket) {
             return ticket.status === "pending";
         });
 
+        // Every word must appear somewhere in the ticket's details,
+        // so "streetlight pundi" and "nov 21" both narrow the list.
         const visibleTickets = incomingTickets.filter(function (ticket) {
+            if (searchTokens.length === 0) return true;
+
+            const haystack = searchableText(ticket);
+            const dateHaystack = searchableDate(ticket.dateObj).toLowerCase();
+
             return (
-                ticket.id.toLowerCase().includes(searchText) ||
-                ticket.issue.toLowerCase().includes(searchText) ||
-                ticket.location.toLowerCase().includes(searchText)
+                textTokens.every(function (token) {
+                    return haystack.includes(token);
+                }) &&
+                dateTokens.every(function (token) {
+                    return dateHaystack.includes(token);
+                })
             );
         });
 
@@ -165,6 +253,9 @@ document.addEventListener("DOMContentLoaded", function () {
             descriptionText.textContent = ticket.description;
 
             issueCell.append(issueTitle, description, descriptionText);
+
+            const categoryCell = document.createElement("td");
+            categoryCell.textContent = ticket.category || "Others";
 
             const locationCell = document.createElement("td");
             locationCell.textContent = ticket.location;
@@ -194,6 +285,7 @@ document.addEventListener("DOMContentLoaded", function () {
             row.append(
                 idCell,
                 issueCell,
+                categoryCell,
                 locationCell,
                 dateCell,
                 statusCell,
@@ -207,7 +299,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
 
-            cell.colSpan = 6;
+            cell.colSpan = 7;
             cell.textContent = "No pending tickets found.";
             cell.style.textAlign = "center";
             cell.style.padding = "24px";

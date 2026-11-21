@@ -27,6 +27,10 @@ namespace AppBackend.Model
         [Column("user_email")]
         public string? UserEmail { get; set; }
 
+        // Issue type picked on the report form, e.g. "Street Lighting".
+        [Column("category")]
+        public string? Category { get; set; }
+
         [Column("photo_url")]
         public string? PhotoUrl { get; set; } // Nullable
 

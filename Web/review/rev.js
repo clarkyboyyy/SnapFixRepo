@@ -149,13 +149,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 rawTicket.Id ??
                 rawTicket.ticketId ??
                 ticketId
+  
             ),
-
+            userEmail:   
+                 rawTicket.userEmail ||
+                 rawTicket.user_email ||
+          "",
             issue:
                 rawTicket.title ||
                 rawTicket.Title ||
                 rawTicket.issue ||
-                "No Title",
+                "No Title", 
+
+            category:
+                rawTicket.category ||
+                rawTicket.Category ||
+                "Others",
 
             location:
                 rawTicket.location ||
@@ -208,7 +217,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 ""
         };
     }
-
+   
     // --------------------------------
     // HTML ELEMENTS
     // --------------------------------
@@ -216,11 +225,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const elements = {
         ticketId: document.getElementById("ticket-id"),
         issue: document.getElementById("issue-title"),
+        category: document.getElementById("ticket-category"),
         location: document.getElementById("issue-location"),
         date: document.getElementById("date-submitted"),
         description: document.getElementById("issue-description"),
 
         displayStatus: document.getElementById("display-status"),
+
+        citizenName: document.getElementById("citizen-name"),     
+         citizenEmail: document.getElementById("citizen-email"),
 
         status: document.getElementById("ticket-status"),
         department: document.getElementById("ticket-department"),
@@ -245,6 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
         conversation: document.getElementById("conversation-messages"),
         messageForm: document.getElementById("message-form"),
         messageInput: document.getElementById("message-input")
+
     };
 
 
@@ -346,6 +360,43 @@ document.addEventListener("DOMContentLoaded", function () {
         elements.photo.src = imageUrl;
     }
 
+    // Citizen name and email: the Users profile for the ticket's email.
+    async function loadCitizen() {
+        if (!elements.citizenName) return;
+
+        const email = String(ticket?.userEmail || "").trim();
+
+        // Older tickets saved before ownership was added have no email.
+        if (!email) {
+            elements.citizenName.textContent = "Unknown citizen";
+            elements.citizenEmail.textContent = "—";
+            return;
+        }
+
+        elements.citizenEmail.textContent = email;
+
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/auth/profile?email=${encodeURIComponent(email)}`
+            );
+
+            if (!response.ok) {
+                // Account row missing: show the email, never a made-up name.
+                elements.citizenName.textContent = email;
+                return;
+            }
+
+            const profile = await response.json();
+            const name = String(profile.fullName || "").trim();
+
+            elements.citizenName.textContent = name || email;
+            elements.citizenEmail.textContent = profile.email || email;
+        } catch (error) {
+            console.error("Could not load the citizen profile:", error);
+            elements.citizenName.textContent = email;
+        }
+    }
+
     // --------------------------------
     // RENDER TICKET
     // --------------------------------
@@ -359,6 +410,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (elements.issue) {
             elements.issue.textContent = ticket.issue || "No Title";
+        }
+
+        if (elements.category) {
+            elements.category.textContent = ticket.category || "Others";
         }
 
         if (elements.location) {
@@ -405,6 +460,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Display the citizen's attached photo
         renderPhoto();
+
+        loadCitizen();
     }
 
     function showMessage(msg, type) {

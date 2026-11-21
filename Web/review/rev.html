@@ -25,6 +25,13 @@
         .photo-placeholder {
             min-height: 100px;
         }
+
+        .review-main {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            min-width: 0;
+        }
     </style>
 </head>
 <body>
@@ -90,9 +97,29 @@
             </section>
 
             <div class="review-grid">
+                <div class="review-main">
 
-                <!-- TICKET DETAILS -->
-                <section class="panel ticket-details">
+                    <!-- CITIZEN INFORMATION -->
+                    <section class="panel citizen-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <h2>Citizen Information</h2>
+                                <p>Who submitted this report</p>
+                            </div>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Name</span>
+                            <p id="citizen-name">—</p>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Email</span>
+                            <p id="citizen-email">—</p>
+                        </div>
+                    </section>
+
+                    <section class="panel ticket-details">
                     <div class="panel-heading">
                         <div>
                             <h2>Ticket Details</h2>
@@ -107,6 +134,11 @@
                     <div class="detail-item">
                         <span class="detail-label">Issue Title</span>
                         <h3 id="issue-title">Road Damage</h3>
+                    </div>
+
+                    <div class="detail-item">
+                        <span class="detail-label">Category</span>
+                        <p id="ticket-category">—</p>
                     </div>
 
                     <div class="detail-item">
@@ -145,6 +177,7 @@
                         >
                     </div>
                 </section>
+                </div>
 
                 <!-- UPDATE AND ASSIGN -->
                 <section class="panel update-panel">
@@ -265,6 +298,7 @@
     </div>
 
     <script src="../shared/admin-profile.js"></script>
+    <script src="../shared/admin-notify.js"></script>
     <script src="rev.js"></script>
 </body>
 </html>

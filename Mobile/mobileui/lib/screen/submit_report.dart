@@ -192,6 +192,7 @@ class _SubmitReportPageState extends State<SubmitReportPage> {
         title,
         location,
         description,
+        category: categoryLabel,
         userEmail: widget.accountEmail,
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,

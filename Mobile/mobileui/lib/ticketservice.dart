@@ -13,6 +13,7 @@ class TicketService {
     String title,
     String location,
     String description, {
+    String? category,
     String? userEmail,
     double? latitude,
     double? longitude,
@@ -28,6 +29,8 @@ class TicketService {
         "dateSubmitted": DateTime.now().toUtc().toIso8601String(),
         "status": "Submitted",
         "priority": "High",
+        if (category != null && category.trim().isNotEmpty)
+          "category": category.trim(),
         if (userEmail != null && userEmail.trim().isNotEmpty)
           "userEmail": userEmail.trim().toLowerCase(),
         // GPS captured on the phone; omitted when the resident denies it.
